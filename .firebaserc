@@ -1,0 +1,9 @@
+{
+  "projects": {
+    "default": "smart-scheduling-app-a94b1"
+  },
+  "firestore": {
+    "rules": "firestore-dev.rules",
+    "indexes": "firestore.indexes.json"
+  }
+}
