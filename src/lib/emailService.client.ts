@@ -1,14 +1,8 @@
-// This file is only for types - actual email sending happens in API routes
-// If you're seeing errors about 'child_process', make sure you're not importing this file in a client component
-// Instead import from '@/lib/emailService.client' in client components
+// This file is only for client-side email service types and stubs
+// Actual email sending happens in API routes
 import { User, AvailableSlot } from '@/types';
 
-// Error message for client-side imports
-const CLIENT_ERROR_MESSAGE = 
-  'Email services cannot be used on the client side. ' +
-  'Use API routes for sending emails or import email types from @/lib/emailService.client';
-
-// Export types
+// Types for email service
 export interface SendEmailOptions {
   to: string;
   subject: string;
@@ -23,10 +17,8 @@ export interface EmailResult {
   previewUrl?: string;
 }
 
-// For client components - this will throw an error if imported directly
-export const sendEmail = async (): Promise<EmailResult> => {
-  throw new Error(CLIENT_ERROR_MESSAGE);
-};
+// These functions are implemented server-side in src/app/api/email/emailService.server.ts
+// The client code should call API routes instead of using these directly
 
 export const sendBookingConfirmationEmail = async (
   host: User,
@@ -34,7 +26,7 @@ export const sendBookingConfirmationEmail = async (
   selectedSlot: AvailableSlot,
   status?: string
 ): Promise<EmailResult> => {
-  throw new Error(CLIENT_ERROR_MESSAGE);
+  throw new Error('This function should not be called client-side. Use API routes instead.');
 };
 
 export const sendHostNotificationEmail = async (
@@ -43,7 +35,7 @@ export const sendHostNotificationEmail = async (
   selectedSlot: AvailableSlot,
   status?: string
 ): Promise<EmailResult> => {
-  throw new Error(CLIENT_ERROR_MESSAGE);
+  throw new Error('This function should not be called client-side. Use API routes instead.');
 };
 
 export const sendBookingStatusUpdateEmail = async (
@@ -51,5 +43,5 @@ export const sendBookingStatusUpdateEmail = async (
   guest: { name: string; email: string; notes?: string },
   booking: { startTime: Date; endTime: Date; duration: number; status: string },
 ): Promise<EmailResult> => {
-  throw new Error(CLIENT_ERROR_MESSAGE);
+  throw new Error('This function should not be called client-side. Use API routes instead.');
 };

@@ -93,6 +93,7 @@ export function BookingForm({ user, profile, selectedSlot, onComplete, onCancel 
               notes: formData.notes || undefined,
             },
             selectedSlot,
+            status: 'pending' // Explicitly pass the status as pending
           }),
         });
 
@@ -101,7 +102,10 @@ export function BookingForm({ user, profile, selectedSlot, onComplete, onCancel 
           // Don't fail the booking if email sending fails
         } else {
           const responseData = await emailResponse.json();
-          emailSentSuccessfully = responseData.guestEmailSent || false;
+          // Check if either guest or host email was sent
+          emailSentSuccessfully = responseData.success || 
+                                  (responseData.details && 
+                                   (responseData.details.guest?.sent || responseData.details.host?.sent));
           console.log('Confirmation email sent successfully:', responseData);
         }
       } catch (emailError) {

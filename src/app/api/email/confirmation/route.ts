@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sendBookingConfirmationEmail, sendHostNotificationEmail, EmailResult } from '@/lib/emailService';
+import { sendBookingConfirmationEmail, sendHostNotificationEmail, sendBookingStatusUpdateEmail, EmailResult } from '@/app/api/email/emailService.server';
 
 // Simple in-memory store for rate limiting
 // In production, you would use Redis or another distributed store
@@ -41,8 +41,9 @@ const checkRateLimit = (ip: string): { allowed: boolean; message?: string } => {
 export const POST = async (req: NextRequest) => {
   try {
     // Get client IP for rate limiting
-    const ip = req.ip || 
-               req.headers.get('x-forwarded-for')?.split(',')[0] || 
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || 
+               req.headers.get('x-real-ip') ||
+               req.cookies.get('user-ip')?.value ||
                'unknown';
     
     // Check rate limit
@@ -56,7 +57,7 @@ export const POST = async (req: NextRequest) => {
 
     // Parse and validate request body
     const data = await req.json();
-    const { host, guest, selectedSlot } = data;
+    const { host, guest, selectedSlot, status } = data;
 
     // Detailed validation with specific error messages
     if (!host) {
@@ -118,13 +119,32 @@ export const POST = async (req: NextRequest) => {
       );
     }
 
-    // Send confirmation email to the guest
-    const guestEmailResult = await sendBookingConfirmationEmail(host, guest, selectedSlot);
+    // Determine if this is a new booking or a status update
+    const isNewBooking = !status || status === 'pending';
+    
+    let guestEmailResult: EmailResult;
+    
+    if (isNewBooking) {
+      // Send booking confirmation (pending) email to the guest
+      guestEmailResult = await sendBookingConfirmationEmail(host, guest, selectedSlot, 'pending');
+    } else {
+      // Send status update email for existing booking
+      guestEmailResult = await sendBookingStatusUpdateEmail(
+        host, 
+        guest, 
+        {
+          startTime: new Date(selectedSlot.start),
+          endTime: new Date(selectedSlot.end),
+          duration: selectedSlot.duration,
+          status: status
+        }
+      );
+    }
 
-    // Send notification email to the host
+    // Send notification email to the host for new bookings
     let hostEmailResult: EmailResult = { success: false };
-    if (host.email && isValidEmail(host.email)) {
-      hostEmailResult = await sendHostNotificationEmail(host, guest, selectedSlot);
+    if (isNewBooking && host.email && isValidEmail(host.email)) {
+      hostEmailResult = await sendHostNotificationEmail(host, guest, selectedSlot, 'pending');
       if (!hostEmailResult.success) {
         console.error('Failed to send notification email to host:', hostEmailResult.error || 'Unknown error');
       }

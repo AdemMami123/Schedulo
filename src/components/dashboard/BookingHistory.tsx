@@ -272,6 +272,12 @@ export function BookingHistory() {
         throw new Error('Booking not found');
       }
       
+      // Only proceed if the status is actually changing
+      if (bookingToUpdate.status === newStatus) {
+        setLoading(false);
+        return;
+      }
+      
       const updates: any = {
         status: newStatus,
         updatedAt: new Date(),
@@ -284,31 +290,77 @@ export function BookingHistory() {
         try {
           console.log('Creating Google Calendar event for confirmed booking');
           
-          // Create calendar event
-          const calendarEvent = {
-            summary: `Meeting with ${bookingToUpdate.guestName}`,
-            description: `Meeting booked through Schedulo.\n\nGuest: ${bookingToUpdate.guestName}\nEmail: ${bookingToUpdate.guestEmail}\n${bookingToUpdate.guestNotes ? `Notes: ${bookingToUpdate.guestNotes}` : ''}`,
-            start: {
-              dateTime: bookingToUpdate.startTime.toISOString(),
-              timeZone: bookingToUpdate.timezone,
-            },
-            end: {
-              dateTime: bookingToUpdate.endTime.toISOString(),
-              timeZone: bookingToUpdate.timezone,
-            },
-            attendees: [
-              {
-                email: bookingToUpdate.guestEmail,
-                displayName: bookingToUpdate.guestName,
+          // Double check that user has Google Calendar connected
+          let profileData = userProfile;
+          
+          // If userProfile is not available or googleCalendarConnected is not set, fetch it
+          if (!profileData) {
+            try {
+              const profileDoc = await getDoc(doc(db, 'userProfiles', user?.uid || ''));
+              if (profileDoc.exists()) {
+                const data = profileDoc.data();
+                profileData = data as any;
+              }
+            } catch (error) {
+              console.error("Error fetching user profile:", error);
+            }
+          }
+          
+          // Check if user has Google Calendar connected
+          const hasGoogleCalendar = (profileData as any)?.googleCalendarConnected || false;
+          
+          if (!hasGoogleCalendar) {
+            console.warn('User does not have Google Calendar connected, skipping event creation');
+            addNotification({
+              type: 'warning',
+              title: 'Calendar Not Connected',
+              message: 'Google Calendar is not connected. The booking has been confirmed, but no calendar event was created.',
+              duration: 5000,
+              persistent: true,
+            });
+          } else {
+            // Initialize Google Calendar service
+            await googleCalendarService.initialize();
+            
+            // Create calendar event
+            const calendarEvent = {
+              summary: `Meeting with ${bookingToUpdate.guestName}`,
+              description: `Meeting booked through Schedulo.\n\nGuest: ${bookingToUpdate.guestName}\nEmail: ${bookingToUpdate.guestEmail}\n${bookingToUpdate.guestNotes ? `Notes: ${bookingToUpdate.guestNotes}` : ''}`,
+              start: {
+                dateTime: bookingToUpdate.startTime.toISOString(),
+                timeZone: bookingToUpdate.timezone,
               },
-            ],
-          };
+              end: {
+                dateTime: bookingToUpdate.endTime.toISOString(),
+                timeZone: bookingToUpdate.timezone,
+              },
+              attendees: [
+                {
+                  email: bookingToUpdate.guestEmail,
+                  displayName: bookingToUpdate.guestName,
+                },
+                // Also add the host to the event
+                {
+                  email: user?.email || '',
+                  displayName: user?.displayName || '',
+                }
+              ],
+              // Add a reminder notification
+              reminders: {
+                useDefault: false,
+                overrides: [
+                  { method: 'email', minutes: 60 },
+                  { method: 'popup', minutes: 15 }
+                ]
+              }
+            };
 
-          const eventId = await googleCalendarService.createEvent(calendarEvent);
-          if (eventId) {
-            console.log('Google Calendar event created:', eventId);
-            // Store the Google Calendar event ID in the booking
-            updates.googleCalendarEventId = eventId;
+            const eventId = await googleCalendarService.createEvent(calendarEvent);
+            if (eventId) {
+              console.log('Google Calendar event created:', eventId);
+              // Store the Google Calendar event ID in the booking
+              updates.googleCalendarEventId = eventId;
+            }
           }
         } catch (calendarError) {
           console.error('Error creating Google Calendar event:', calendarError);
@@ -328,10 +380,32 @@ export function BookingHistory() {
           bookingToUpdate.googleCalendarEventId &&
           userHasGoogleCalendar) {
         try {
-          await googleCalendarService.deleteEvent(bookingToUpdate.googleCalendarEventId);
-          console.log('Google Calendar event deleted');
+          // Initialize Google Calendar service
+          await googleCalendarService.initialize();
+          
+          // Delete the calendar event
+          const deleted = await googleCalendarService.deleteEvent(bookingToUpdate.googleCalendarEventId);
+          if (deleted) {
+            console.log('Google Calendar event deleted');
+          } else {
+            console.warn('Failed to delete Google Calendar event');
+            addNotification({
+              type: 'warning',
+              title: 'Calendar Sync Issue',
+              message: 'The booking was cancelled but the calendar event may still be in your Google Calendar.',
+              duration: 5000,
+              persistent: true,
+            });
+          }
         } catch (calendarError) {
           console.error('Error deleting Google Calendar event:', calendarError);
+          addNotification({
+            type: 'error',
+            title: 'Calendar Error',
+            message: 'Could not delete the event from Google Calendar.',
+            duration: 5000,
+            persistent: true,
+          });
         }
       }
       
@@ -351,6 +425,57 @@ export function BookingHistory() {
             })
           : booking
       ));
+
+      // Send status update email to guest
+      try {
+        // Create guest info object from booking
+        const guest = {
+          name: bookingToUpdate.guestName,
+          email: bookingToUpdate.guestEmail,
+          notes: bookingToUpdate.guestNotes
+        };
+        
+        // Log the status change email we're about to send
+        console.log(`Sending booking status update email to ${guest.email} with status: ${newStatus}`);
+        
+        // Ensure we have a user to send
+        if (user) {
+          // Send status update via API route
+          const emailResponse = await fetch('/api/email/confirmation', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              host: {
+                id: user.uid,
+                email: user.email || '',
+                displayName: user.displayName || 'Host',
+                photoURL: user.photoURL || undefined,
+                timezone: userProfile?.timezone || 'UTC'
+              },
+              guest,
+              selectedSlot: {
+                start: bookingToUpdate.startTime,
+                end: bookingToUpdate.endTime,
+                duration: bookingToUpdate.duration
+              },
+              status: newStatus
+            }),
+          });
+
+          if (!emailResponse.ok) {
+            console.error('Failed to send status update email:', await emailResponse.text());
+          } else {
+            console.log(`Status update email sent to guest for booking ${bookingId}`);
+          }
+        } else {
+          console.warn('User not available, skipping email notification');
+        }
+      } catch (emailError) {
+        console.error('Failed to send status update email:', emailError);
+        // Don't block the process if email fails
+      }
 
       const statusText = newStatus === BookingStatus.CONFIRMED ? 'confirmed' : 
                         newStatus === BookingStatus.CANCELLED ? 'cancelled' : 
@@ -457,53 +582,7 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
       {/* Apply animation styles */}
       <style dangerouslySetInnerHTML={{ __html: animationStyles }} />
       
-      {/* Welcome Dashboard */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-violet-600 rounded-2xl shadow-lg">
-        <div className="absolute top-0 left-0 w-full h-full">
-          <div className="absolute top-1/4 left-1/3 w-24 h-24 bg-white/10 rounded-full animate-pulse-slow"></div>
-          <div className="absolute top-1/2 left-2/3 w-16 h-16 bg-white/10 rounded-full animate-ping-slow"></div>
-          <div className="absolute bottom-1/3 left-1/4 w-20 h-20 bg-white/5 rounded-full animate-bounce-slow"></div>
-        </div>
-        <div className="relative p-8 sm:p-10 z-10">
-          <div className="flex items-center space-x-2 mb-1">
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-            </span>
-            <p className="text-emerald-100 font-medium">You're online</p>
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
-            Welcome back, {userProfile?.displayName.split(' ')[0] || 'there'}!
-          </h1>
-          <p className="text-blue-100 text-lg mb-6">
-            Monitor your schedule performance and booking insights
-          </p>
-          
-          <div className="flex flex-wrap items-center gap-6">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
-              <span className="text-white font-medium">
-                {filterCounts.confirmed + filterCounts.completed} bookings this week
-              </span>
-            </div>
-            {filterCounts.pending > 0 && (
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-amber-400"></div>
-                <span className="text-white font-medium">
-                  {filterCounts.pending} pending
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-        <div className="absolute right-8 top-1/2 transform -translate-y-1/2 hidden lg:block">
-          <div className="w-24 h-24 bg-white/20 rounded-2xl flex items-center justify-center animate-float">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-12 h-12 text-white">
-              <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm11.378-3.917c-.89-.777-2.366-.777-3.255 0a.75.75 0 01-.988-1.129c1.454-1.272 3.776-1.272 5.23 0 1.513 1.324 1.513 3.518 0 4.842a3.75 3.75 0 01-.837.552c-.676.328-1.028.774-1.028 1.152v.75a.75.75 0 01-1.5 0v-.75c0-1.077.84-1.916 1.646-2.351.246-.119.66-.3.66-.679 0-.493-.418-1.058-1.176-1.74zM12 18a.75.75 0 100-1.5.75.75 0 000 1.5z" clipRule="evenodd" />
-            </svg>
-          </div>
-        </div>
-      </div>
+      
 
       {/* How To Use Guide */}
       {filterCounts.all < 5 && (
