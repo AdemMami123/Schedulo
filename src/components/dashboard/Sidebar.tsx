@@ -11,7 +11,10 @@ import {
   ClockIcon,
   ArrowRightOnRectangleIcon,
   XMarkIcon,
+  UserGroupIcon,
+  LinkIcon,
 } from '@heroicons/react/24/outline';
+import { SidebarUserLinks } from './SidebarUserLinks';
 import { DashboardView } from './Dashboard';
 import { cn } from '@/lib/utils';
 
@@ -20,6 +23,7 @@ const navigation = [
   { name: 'Availability', href: 'availability', icon: ClockIcon },
   { name: 'Booking Settings', href: 'booking-settings', icon: Cog6ToothIcon },
   { name: 'History', href: 'history', icon: CalendarDaysIcon },
+  { name: 'Accounts', href: 'accounts', icon: UserGroupIcon },
 ];
 
 interface SidebarProps {
@@ -80,6 +84,17 @@ export function Sidebar({
             {item.name}
           </button>
         ))}
+        
+        {/* User Booking Links Section */}
+        <div className="mt-8">
+          <div className="flex items-center px-4 mb-2">
+            <LinkIcon className="h-5 w-5 text-slate-500 dark:text-slate-400 mr-2" />
+            <h3 className="text-sm font-medium text-slate-900 dark:text-white">User Booking Links</h3>
+          </div>
+          <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-2">
+            <SidebarUserLinks />
+          </div>
+        </div>
       </nav>
 
       {/* Enhanced User Profile */}

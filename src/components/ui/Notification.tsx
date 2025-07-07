@@ -46,6 +46,20 @@ const bgColorMap = {
   info: 'bg-blue-50 dark:bg-blue-900/20',
 };
 
+const borderColorMap = {
+  success: 'border-green-300 dark:border-green-600',
+  error: 'border-red-300 dark:border-red-600',
+  warning: 'border-yellow-300 dark:border-yellow-600',
+  info: 'border-blue-300 dark:border-blue-600',
+};
+
+const progressColorMap = {
+  success: 'bg-green-500',
+  error: 'bg-red-500',
+  warning: 'bg-yellow-500',
+  info: 'bg-blue-500',
+};
+
 function NotificationItem({ notification, onRemove }: NotificationProps) {
   const [show, setShow] = useState(true);
   const Icon = iconMap[notification.type];
@@ -55,6 +69,9 @@ function NotificationItem({ notification, onRemove }: NotificationProps) {
     setTimeout(() => onRemove(notification.id), 300);
   };
 
+  // Progress bar animation duration
+  const duration = notification.duration || 5000;
+
   return (
     <Transition
       show={show}
@@ -62,35 +79,54 @@ function NotificationItem({ notification, onRemove }: NotificationProps) {
       enter="transform ease-out duration-300 transition"
       enterFrom="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
       enterTo="translate-y-0 opacity-100 sm:translate-x-0"
-      leave="transition ease-in duration-100"
-      leaveFrom="opacity-100"
-      leaveTo="opacity-0"
+      leave="transition ease-in duration-200"
+      leaveFrom="opacity-100 scale-100"
+      leaveTo="opacity-0 scale-95"
     >
-      <div className={`max-w-sm w-full ${bgColorMap[notification.type]} shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden`}>
-        <div className="p-4">
+      <div 
+        className={`max-w-sm w-full shadow-lg rounded-lg pointer-events-auto overflow-hidden backdrop-blur-sm border ${borderColorMap[notification.type]} transform transition-all hover:scale-[1.02] hover:shadow-xl`}
+      >
+        <div className={`${bgColorMap[notification.type]} p-4 relative`}>
           <div className="flex items-start">
             <div className="flex-shrink-0">
-              <Icon className={`h-6 w-6 ${colorMap[notification.type]}`} aria-hidden="true" />
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                notification.type === 'success' ? 'bg-green-100 dark:bg-green-800 animate-pulse-slow' : 
+                notification.type === 'error' ? 'bg-red-100 dark:bg-red-800' : 
+                notification.type === 'warning' ? 'bg-yellow-100 dark:bg-yellow-800' : 
+                'bg-blue-100 dark:bg-blue-800'
+              }`}>
+                <Icon className={`h-5 w-5 ${colorMap[notification.type]}`} aria-hidden="true" />
+              </div>
             </div>
             <div className="ml-3 w-0 flex-1 pt-0.5">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">
                 {notification.title}
               </p>
               {notification.message && (
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
                   {notification.message}
                 </p>
               )}
             </div>
             <div className="ml-4 flex-shrink-0 flex">
               <button
-                className="bg-white dark:bg-gray-800 rounded-md inline-flex text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="rounded-full p-1.5 inline-flex text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 onClick={handleRemove}
               >
                 <span className="sr-only">Close</span>
-                <XMarkIcon className="h-5 w-5" aria-hidden="true" />
+                <XMarkIcon className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
+          </div>
+          
+          {/* Progress bar */}
+          <div className="absolute bottom-0 left-0 h-1 bg-gray-200 dark:bg-gray-700 w-full">
+            <div 
+              className={`h-full ${progressColorMap[notification.type]} animate-shrink`}
+              style={{
+                animationDuration: `${duration}ms`,
+              }}
+            />
           </div>
         </div>
       </div>
@@ -107,17 +143,68 @@ export function NotificationContainer({ notifications, onRemove }: NotificationC
   return (
     <div
       aria-live="assertive"
-      className="fixed inset-0 flex items-end px-4 py-6 pointer-events-none sm:p-6 sm:items-start z-50"
+      className="fixed inset-0 flex items-end px-4 py-6 pointer-events-none sm:p-6 z-50"
     >
-      <div className="w-full flex flex-col items-center space-y-4 sm:items-end">
-        {notifications.map((notification) => (
-          <NotificationItem
+      <div className="w-full flex flex-col items-center space-y-3 sm:items-end">
+        {notifications.map((notification, index) => (
+          <div 
             key={notification.id}
-            notification={notification}
-            onRemove={onRemove}
-          />
+            className="w-full sm:max-w-sm md:max-w-md notification-item"
+            style={{
+              animationDelay: `${index * 150}ms`,
+            }}
+          >
+            <NotificationItem
+              notification={notification}
+              onRemove={onRemove}
+            />
+          </div>
         ))}
       </div>
+
+      {/* Animation keyframes */}
+      <style jsx global>{`
+        .notification-item {
+          opacity: 0;
+          animation: fadeInSlide 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+        
+        @keyframes fadeInSlide {
+          from { 
+            opacity: 0;
+            transform: translateY(20px) scale(0.95); 
+          }
+          to { 
+            opacity: 1;
+            transform: translateY(0) scale(1); 
+          }
+        }
+        
+        @keyframes shrink {
+          from { width: 100%; }
+          to { width: 0%; }
+        }
+        
+        .animate-shrink {
+          width: 100%;
+          animation-name: shrink;
+          animation-timing-function: linear;
+          animation-fill-mode: forwards;
+        }
+        
+        .animate-pulse-slow {
+          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.7;
+          }
+        }
+      `}</style>
     </div>
   );
 }

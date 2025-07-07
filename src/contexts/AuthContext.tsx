@@ -5,6 +5,7 @@ import { User, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/aut
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, googleProvider, db } from '@/lib/firebase';
 import { User as AppUser } from '@/types';
+import { generateUsername } from '@/lib/utils';
 
 interface AuthContextType {
   user: User | null;
@@ -171,11 +172,4 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-function generateUsername(displayName: string): string {
-  return displayName
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '')
-    .slice(0, 20);
 }

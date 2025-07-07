@@ -101,11 +101,11 @@ body {
 
 /* Custom animations */
 @keyframes fadeIn {
-  from {
+  0% {
     opacity: 0;
     transform: translateY(10px);
   }
-  to {
+  100% {
     opacity: 1;
     transform: translateY(0);
   }
@@ -279,5 +279,21 @@ select:focus {
 @keyframes loading-shimmer {
   100% {
     transform: translateX(100%);
+  }
+}
+
+/* Mobile optimizations for booking page */
+@media (max-width: 768px) {
+  .booking-header-content {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .booking-header-photo {
+    margin-bottom: 1rem;
+  }
+  
+  .booking-header-info {
+    align-items: center;
   }
 }

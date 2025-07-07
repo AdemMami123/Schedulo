@@ -18,6 +18,7 @@ A modern, intelligent scheduling application built with Next.js, Firebase, and G
 - **Timezone Support**: Automatic timezone detection and conversion
 - **Responsive Design**: Mobile-friendly interface
 - **Buffer Time Management**: Customizable buffer time before/after meetings
+- **Email Notifications**: Automatic booking confirmations and notifications
 
 ## 🛠️ Tech Stack
 
@@ -72,6 +73,14 @@ GOOGLE_CALENDAR_CLIENT_SECRET=your-google-calendar-client-secret
 # Base URL
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
 
+# Email Configuration (choose one or both)
+NEXT_PUBLIC_RESEND_API_KEY=your-resend-api-key
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your-email@example.com
+SMTP_PASSWORD=your-password
+
 # Firebase Admin SDK (for server-side operations)
 FIREBASE_ADMIN_PROJECT_ID=your-project-id
 FIREBASE_ADMIN_CLIENT_EMAIL=your-admin-email
@@ -108,6 +117,8 @@ Open [http://localhost:3000](http://localhost:3000) to see the application.
 \`\`\`
 src/
 ├── app/                    # Next.js App Router pages
+│   ├── api/                # API routes
+│   │   └── email/          # Email API endpoints
 │   ├── layout.tsx         # Root layout
 │   ├── page.tsx           # Home page
 │   ├── globals.css        # Global styles
@@ -125,6 +136,7 @@ src/
 ├── lib/                  # Utility libraries
 │   ├── firebase.ts       # Firebase configuration
 │   ├── googleCalendar.ts # Google Calendar service
+│   ├── emailService.ts   # Email sending functionality
 │   └── utils.ts          # Utility functions
 └── types/                # TypeScript type definitions
     └── index.ts
@@ -148,6 +160,7 @@ src/
 - Real-time availability checking
 - Conflict detection with existing bookings
 - Google Calendar integration
+- Email confirmations to both guest and host
 
 ### Google Calendar Integration
 - OAuth 2.0 authentication

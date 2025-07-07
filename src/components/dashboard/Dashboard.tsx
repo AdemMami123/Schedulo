@@ -7,21 +7,26 @@ import { Overview } from './Overview';
 import { AvailabilitySettings } from './AvailabilitySettings';
 import { BookingSettings } from './BookingSettings';
 import { BookingHistory } from './BookingHistory';
+import { AccountsList } from '@/components/accounts/AccountsList';
+import { NotificationBell } from '@/components/ui/NotificationBell';
 import { 
   Bars3Icon, 
-  BellIcon, 
   MagnifyingGlassIcon,
   SparklesIcon,
   FireIcon,
   ChartBarIcon,
-  TrophyIcon
+  TrophyIcon,
+  UserGroupIcon
 } from '@heroicons/react/24/outline';
 import { Card, CardContent } from '@/components/ui/Card';
+import { NotificationContainer } from '@/components/ui/Notification';
+import { useNotifications } from '@/contexts/NotificationContext';
 
-export type DashboardView = 'overview' | 'availability' | 'booking-settings' | 'history';
+export type DashboardView = 'overview' | 'availability' | 'booking-settings' | 'history' | 'accounts';
 
 export function Dashboard() {
   const { userProfile } = useAuth();
+  const { notifications, removeNotification } = useNotifications();
   const [currentView, setCurrentView] = useState<DashboardView>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -35,6 +40,8 @@ export function Dashboard() {
         return <BookingSettings />;
       case 'history':
         return <BookingHistory />;
+      case 'accounts':
+        return <AccountsList />;
       default:
         return <Overview />;
     }
@@ -50,6 +57,8 @@ export function Dashboard() {
         return 'Booking Settings';
       case 'history':
         return 'Booking History';
+      case 'accounts':
+        return 'All Accounts';
       default:
         return 'Dashboard Overview';
     }
@@ -65,6 +74,8 @@ export function Dashboard() {
         return 'Configure your booking preferences and settings';
       case 'history':
         return 'View and manage your booking history';
+      case 'accounts':
+        return 'View all user accounts and their booking links';
       default:
         return 'Monitor your schedule performance and booking insights';
     }
@@ -80,6 +91,8 @@ export function Dashboard() {
         return <FireIcon className="h-6 w-6" />;
       case 'history':
         return <TrophyIcon className="h-6 w-6" />;
+      case 'accounts':
+        return <UserGroupIcon className="h-6 w-6" />;
       default:
         return <ChartBarIcon className="h-6 w-6" />;
     }
@@ -138,12 +151,7 @@ export function Dashboard() {
                 </div>
 
                 {/* Enhanced Notifications */}
-                <button className="relative p-2.5 rounded-xl text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 hover:scale-105">
-                  <BellIcon className="h-6 w-6" />
-                  <span className="absolute -top-1 -right-1 h-5 w-5 bg-gradient-to-r from-red-500 to-pink-500 rounded-full flex items-center justify-center animate-pulse">
-                    <span className="text-xs font-bold text-white">3</span>
-                  </span>
-                </button>
+                <NotificationBell />
               </div>
             </div>
           </div>
@@ -152,48 +160,54 @@ export function Dashboard() {
           <div className="p-6 space-y-8">
             {/* Enhanced Welcome Section */}
             <div className="relative overflow-hidden">
-              <Card className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white border-none shadow-2xl relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-indigo-600/20 backdrop-blur-3xl"></div>
-                <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
-                <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-                
-                <CardContent className="p-8 relative z-10">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-4">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                        <span className="text-sm font-medium text-blue-100">
-                          You&apos;re online
-                        </span>
-                      </div>
-                      <div>
-                        <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
-                          Welcome back, {userProfile?.displayName}! 
-                        </h2>
-                        <p className="text-blue-100 text-lg font-medium">
-                          {getViewDescription()}
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-6 text-sm">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-                          <span className="text-blue-100">12 bookings this week</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
-                          <span className="text-blue-100">3 pending</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="hidden md:block">
-                      <div className="w-28 h-28 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-white/20 hover:scale-105 transition-transform duration-300">
-                        <span className="text-5xl">�</span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+  <Card className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white border-none shadow-2xl relative overflow-hidden">
+    <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-indigo-600/20 backdrop-blur-3xl"></div>
+    <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+    <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+
+    <CardContent className="p-8 relative z-10">
+      <div className="flex items-center justify-between">
+        <div className="space-y-5">
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+            <span className="text-sm font-medium text-blue-100">
+              You're online
+            </span>
+          </div>
+
+          <div>
+            <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
+              Hello, {userProfile?.displayName}! 👋
+            </h2>
+            <p className="text-blue-100 text-lg font-medium leading-relaxed">
+              Welcome to your personal scheduling HQ — define your availability, share your link, and let others book you effortlessly.
+              <br />
+              It’s like Calendly, but smarter. 🧠
+            </p>
+          </div>
+
+          <div className="flex items-center space-x-6 text-sm">
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+              <span className="text-blue-100">12 bookings this week</span>
             </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
+              <span className="text-blue-100">3 pending</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="hidden md:block">
+          <div className="w-28 h-28 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-white/20 hover:scale-105 transition-transform duration-300">
+            <span className="text-5xl">📆</span>
+          </div>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+</div>
+
 
             {/* Content with enhanced animations */}
             <div className="animate-fade-in">
@@ -202,6 +216,12 @@ export function Dashboard() {
           </div>
         </main>
       </div>
+      
+      {/* Notification Container */}
+      <NotificationContainer 
+        notifications={notifications} 
+        onRemove={removeNotification} 
+      />
     </div>
   );
 }

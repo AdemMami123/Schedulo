@@ -10,10 +10,11 @@ interface BookingSuccessProps {
   user: User;
   selectedSlot: AvailableSlot;
   guestEmail: string;
+  emailSent?: boolean;
   onBackToBooking: () => void;
 }
 
-export function BookingSuccess({ user, selectedSlot, guestEmail, onBackToBooking }: BookingSuccessProps) {
+export function BookingSuccess({ user, selectedSlot, guestEmail, emailSent = true, onBackToBooking }: BookingSuccessProps) {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-2xl mx-auto px-4 py-8">
@@ -27,11 +28,18 @@ export function BookingSuccess({ user, selectedSlot, guestEmail, onBackToBooking
             </div>
             
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Booking Confirmed!
+              Booking Request Submitted!
             </h1>
             
+            <div className="flex items-center justify-center mb-3">
+              <span className="px-3 py-1 text-sm font-medium rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
+                Pending Approval
+              </span>
+            </div>
+            
             <p className="text-gray-600 dark:text-gray-400 mb-8">
-              Your meeting with {user.displayName} has been successfully scheduled.
+              Your meeting request with {user.displayName} is pending confirmation.
+              You'll receive an email when your booking is confirmed.
             </p>
 
             <Card variant="bordered" className="bg-gray-50 dark:bg-gray-800/50 mb-6">
@@ -52,12 +60,14 @@ export function BookingSuccess({ user, selectedSlot, guestEmail, onBackToBooking
               </CardContent>
             </Card>
 
-            <Card variant="bordered" className="bg-blue-50 dark:bg-blue-900/20 mb-6">
+            <Card variant="bordered" className={`${emailSent ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-amber-50 dark:bg-amber-900/20'} mb-6`}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-center">
-                  <EnvelopeIcon className="w-5 h-5 text-blue-500 mr-3" />
-                  <span className="text-sm text-blue-700 dark:text-blue-300">
-                    A confirmation email has been sent to {guestEmail}
+                  <EnvelopeIcon className={`w-5 h-5 ${emailSent ? 'text-blue-500' : 'text-amber-500'} mr-3`} />
+                  <span className={`text-sm ${emailSent ? 'text-blue-700 dark:text-blue-300' : 'text-amber-700 dark:text-amber-300'}`}>
+                    {emailSent 
+                      ? `A confirmation email has been sent to ${guestEmail}`
+                      : `We're processing your confirmation email to ${guestEmail}`}
                   </span>
                 </div>
               </CardContent>
@@ -65,7 +75,8 @@ export function BookingSuccess({ user, selectedSlot, guestEmail, onBackToBooking
 
             <div className="text-sm text-gray-600 dark:text-gray-400 mb-8">
               <p>
-                Please check your email for the meeting details and calendar invitation.
+                {user.displayName} will review your booking request shortly.
+                You'll receive a confirmation email when your booking is approved.
                 If you need to make any changes, please contact {user.displayName} directly.
               </p>
             </div>

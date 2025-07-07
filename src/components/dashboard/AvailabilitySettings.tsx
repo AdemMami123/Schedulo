@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNotifications } from '@/contexts/NotificationContext';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { UserProfile, WeeklyAvailability } from '@/types';
@@ -45,6 +46,7 @@ const DEFAULT_AVAILABILITY: WeeklyAvailability = {
 
 export function AvailabilitySettings() {
   const { userProfile } = useAuth();
+  const { addNotification } = useNotifications();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [availability, setAvailability] = useState<WeeklyAvailability>(DEFAULT_AVAILABILITY);
   const [loading, setLoading] = useState(true);
@@ -166,21 +168,25 @@ export function AvailabilitySettings() {
   };
 
   const handleSave = async () => {
-    if (!userProfile) return;
-
-    // Validate all time slots
-    for (const day of DAYS_OF_WEEK) {
-      const dayAvailability = availability[day];
-      if (dayAvailability.enabled) {
-        for (const slot of dayAvailability.timeSlots) {
-          if (!validateTimeSlot(slot.start, slot.end)) {
-            setSaveStatus('error');
-            alert(`Invalid time slot for ${capitalizeFirst(day)}: End time must be after start time.`);
-            return;
+    if (!userProfile) return;      // Validate all time slots
+      for (const day of DAYS_OF_WEEK) {
+        const dayAvailability = availability[day];
+        if (dayAvailability.enabled) {
+          for (const slot of dayAvailability.timeSlots) {
+            if (!validateTimeSlot(slot.start, slot.end)) {
+              setSaveStatus('error');
+              addNotification({
+                type: 'error',
+                title: 'Invalid Time Slot',
+                message: `Invalid time slot for ${capitalizeFirst(day)}: End time must be after start time.`,
+                duration: 0, // No floating toast
+                persistent: true,
+              });
+              return;
+            }
           }
         }
       }
-    }
 
     setSaving(true);
     setSaveStatus('idle');
@@ -223,6 +229,13 @@ export function AvailabilitySettings() {
       } as UserProfile));
       
       setSaveStatus('success');
+      addNotification({
+        type: 'success',
+        title: 'Settings Saved',
+        message: 'Your availability settings have been saved successfully!',
+        duration: 2000, // Hide after 2 seconds
+        persistent: true,
+      });
       setTimeout(() => setSaveStatus('idle'), 3000);
     } catch (error) {
       console.error('Error saving availability:', error);
@@ -232,6 +245,13 @@ export function AvailabilitySettings() {
         userProfileId: userProfile.id,
       });
       setSaveStatus('error');
+      addNotification({
+        type: 'error',
+        title: 'Save Failed',
+        message: 'Failed to save availability settings. Please try again.',
+        duration: 0, // No floating toast for errors, only in bell
+        persistent: true,
+      });
       setTimeout(() => setSaveStatus('idle'), 3000);
     } finally {
       setSaving(false);

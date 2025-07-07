@@ -25,6 +25,7 @@ export function BookingForm({ user, profile, selectedSlot, onComplete, onCancel 
     name: '',
     email: '',
     notes: '',
+    emailSent: false,
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -57,7 +58,7 @@ export function BookingForm({ user, profile, selectedSlot, onComplete, onCancel 
     setLoading(true);
 
     try {
-      // Create the booking
+      // Create the booking as PENDING (requires host confirmation)
       const bookingData = {
         userId: user.id,
         guestName: formData.name.trim(),
@@ -66,48 +67,54 @@ export function BookingForm({ user, profile, selectedSlot, onComplete, onCancel 
         startTime: selectedSlot.start,
         endTime: selectedSlot.end,
         duration: selectedSlot.duration,
-        status: BookingStatus.CONFIRMED,
+        status: BookingStatus.PENDING, // Set to PENDING instead of CONFIRMED
         timezone: profile.timezone,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
 
-      await addDoc(collection(db, 'bookings'), bookingData);
+      // Add to Firestore but don't add to calendar yet (will be added when confirmed)
+      const bookingRef = await addDoc(collection(db, 'bookings'), bookingData);
 
-      // Add to Google Calendar if connected
-      if (profile.googleCalendarConnected) {
-        try {
-          const calendarEvent = {
-            summary: `Meeting with ${formData.name}`,
-            description: `Meeting booked through Schedulo.\n\nGuest: ${formData.name}\nEmail: ${formData.email}\n${formData.notes ? `Notes: ${formData.notes}` : ''}`,
-            start: {
-              dateTime: selectedSlot.start.toISOString(),
-              timeZone: profile.timezone,
+      // Send confirmation email
+      let emailSentSuccessfully = false;
+      
+      try {
+        const emailResponse = await fetch('/api/email/confirmation', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            host: user,
+            guest: {
+              name: formData.name,
+              email: formData.email,
+              notes: formData.notes || undefined,
             },
-            end: {
-              dateTime: selectedSlot.end.toISOString(),
-              timeZone: profile.timezone,
-            },
-            attendees: [
-              {
-                email: formData.email,
-                displayName: formData.name,
-              },
-            ],
-          };
+            selectedSlot,
+          }),
+        });
 
-          const eventId = await googleCalendarService.createEvent(calendarEvent);
-          if (eventId) {
-            console.log('Google Calendar event created:', eventId);
-          }
-        } catch (error) {
-          console.error('Error creating Google Calendar event:', error);
-          // Don't fail the booking if calendar creation fails
+        if (!emailResponse.ok) {
+          console.error('Failed to send confirmation email:', await emailResponse.text());
+          // Don't fail the booking if email sending fails
+        } else {
+          const responseData = await emailResponse.json();
+          emailSentSuccessfully = responseData.guestEmailSent || false;
+          console.log('Confirmation email sent successfully:', responseData);
         }
+      } catch (emailError) {
+        console.error('Error sending confirmation email:', emailError);
+        // Don't fail the booking if email sending fails
       }
 
-      // TODO: Send confirmation email
-
+      // Store whether the email was sent in state
+      setFormData(prev => ({ 
+        ...prev, 
+        emailSent: emailSentSuccessfully 
+      }));
+      
       setBookingComplete(true);
     } catch (error) {
       console.error('Error creating booking:', error);
@@ -137,6 +144,7 @@ export function BookingForm({ user, profile, selectedSlot, onComplete, onCancel 
         user={user}
         selectedSlot={selectedSlot}
         guestEmail={formData.email}
+        emailSent={formData.emailSent}
         onBackToBooking={handleBackToBooking}
       />
     );
