@@ -415,3 +415,77 @@ export const sendBookingStatusUpdateEmail = async (
     html,
   });
 };
+
+export const sendReminderEmail = async (
+  {
+    host,
+    guest,
+    booking,
+    customMessage
+  }: {
+    host: User;
+    guest: { name: string; email: string; notes?: string };
+    booking: { startTime: Date; endTime: Date; duration: number };
+    customMessage?: string;
+  }
+): Promise<EmailResult> => {
+  const subject = `Reminder: Upcoming meeting with ${host.displayName}`;
+  
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #f9fafb; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+        .content { padding: 20px; border: 1px solid #e5e7eb; border-radius: 0 0 5px 5px; }
+        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #6b7280; }
+        .details { background-color: #f9fafb; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        .reminder-icon { background-color: #FEF3C7; color: #92400E; padding: 8px 15px; border-radius: 4px; display: inline-block; margin-bottom: 15px; font-weight: bold; border: 1px solid #F59E0B; }
+        .custom-message { background-color: #E0F2FE; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #0EA5E9; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Meeting Reminder</h1>
+        </div>
+        <div class="content">
+          <p>Hello ${guest.name},</p>
+          
+          <div class="reminder-icon">📅 REMINDER</div>
+          
+          <p>This is a friendly reminder about your upcoming meeting with <strong>${host.displayName}</strong>.</p>
+          
+          <div class="details">
+            <p><strong>Date & Time:</strong> ${formatDateTime(booking.startTime)}</p>
+            <p><strong>Duration:</strong> ${booking.duration} minutes</p>
+            ${guest.notes ? `<p><strong>Your Notes:</strong> ${guest.notes}</p>` : ''}
+          </div>
+          
+          ${customMessage ? `
+            <div class="custom-message">
+              <p><strong>Message from ${host.displayName}:</strong></p>
+              <p>${customMessage}</p>
+            </div>
+          ` : ''}
+          
+          <p>Please make sure to be available at the scheduled time. If you need to reschedule or cancel, please contact ${host.displayName} as soon as possible.</p>
+          
+          <p>Thank you for using Schedulo!</p>
+        </div>
+        <div class="footer">
+          <p>Powered by Schedulo</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+  
+  return sendEmail({
+    to: guest.email,
+    subject,
+    html,
+  });
+};

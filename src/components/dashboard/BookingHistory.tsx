@@ -6,6 +6,7 @@ import { useNotifications } from '@/contexts/NotificationContext';
 import { collection, query, where, getDocs, orderBy, doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { googleCalendarService } from '@/lib/googleCalendar';
+import { reminderService } from '@/lib/reminderService';
 import { Booking, BookingStatus } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -585,6 +586,30 @@ export function BookingHistory() {
       // Update the booking in Firestore
       const bookingRef = doc(db, 'bookings', bookingId);
       await updateDoc(bookingRef, updates);
+
+      // Handle reminder scheduling based on status change
+      const updatedBooking = {
+        ...bookingToUpdate,
+        ...updates,
+        status: newStatus,
+        updatedAt: new Date(),
+        googleCalendarEventId: updates.googleCalendarEventId || bookingToUpdate.googleCalendarEventId
+      };
+
+      try {
+        if (newStatus === BookingStatus.CONFIRMED) {
+          // Schedule reminder for confirmed booking
+          await reminderService.scheduleReminder(updatedBooking);
+          console.log('Reminder scheduled for confirmed booking:', bookingId);
+        } else if (newStatus === BookingStatus.CANCELLED || newStatus === BookingStatus.COMPLETED) {
+          // Cancel reminder for cancelled or completed booking
+          reminderService.cancelReminder(bookingId);
+          console.log('Reminder cancelled for booking:', bookingId);
+        }
+      } catch (reminderError) {
+        console.error('Error handling reminder scheduling:', reminderError);
+        // Don't fail the booking update if reminder scheduling fails
+      }
 
       // Update local state
       setBookings(prev => prev.map(booking =>

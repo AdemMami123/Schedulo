@@ -21,6 +21,9 @@ export interface UserProfile {
   bookingPageTitle: string;
   bookingPageDescription: string;
   autoConfirmBookings?: boolean;
+  enableReminders?: boolean;
+  reminderTime?: number; // hours before meeting
+  customReminderMessage?: string;
   googleCalendarConnected: boolean;
   googleCalendarId?: string;
   googleCalendar?: {

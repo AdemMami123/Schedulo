@@ -89,6 +89,7 @@ export function BookingSettings() {
     enableReminders: true,
     reminderTime: 24, // hours before
     customMessage: '',
+    customReminderMessage: '',
     showAvailability: true,
     collectPhoneNumber: false,
     requireApproval: false,
@@ -117,9 +118,10 @@ export function BookingSettings() {
           cancellationNotice: 24,
           maxAdvanceBooking: 30,
           minAdvanceBooking: 2,
-          enableReminders: true,
-          reminderTime: 24,
+          enableReminders: profileData.enableReminders ?? true,
+          reminderTime: profileData.reminderTime || 24,
           customMessage: '',
+          customReminderMessage: profileData.customReminderMessage || '',
           showAvailability: true,
           collectPhoneNumber: false,
           requireApproval: false,
@@ -201,6 +203,9 @@ export function BookingSettings() {
         bookingPageTitle: settings.bookingPageTitle,
         bookingPageDescription: settings.bookingPageDescription,
         autoConfirmBookings: settings.autoConfirmBookings,
+        enableReminders: settings.enableReminders,
+        reminderTime: settings.reminderTime,
+        customReminderMessage: settings.customReminderMessage,
         googleCalendarConnected: profile?.googleCalendarConnected ?? false,
         weeklyAvailability: profile?.weeklyAvailability || {},
         updatedAt: serverTimestamp(),
@@ -788,21 +793,39 @@ export function BookingSettings() {
           </div>
 
           {settings.enableReminders && (
-            <div>
-              <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
-                Send Reminder
-              </label>
-              <select
-                value={settings.reminderTime}
-                onChange={(e) => setSettings(prev => ({ ...prev, reminderTime: parseInt(e.target.value) }))}
-                className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-              >
-                <option value={1}>1 hour before</option>
-                <option value={24}>24 hours before</option>
-                <option value={48}>48 hours before</option>
-                <option value={72}>3 days before</option>
-              </select>
-            </div>
+            <>
+              <div>
+                <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
+                  Send Reminder
+                </label>
+                <select
+                  value={settings.reminderTime}
+                  onChange={(e) => setSettings(prev => ({ ...prev, reminderTime: parseInt(e.target.value) }))}
+                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                >
+                  <option value={1}>1 hour before</option>
+                  <option value={24}>24 hours before</option>
+                  <option value={48}>48 hours before</option>
+                  <option value={72}>3 days before</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
+                  Custom Reminder Message
+                </label>
+                <textarea
+                  value={settings.customReminderMessage}
+                  onChange={(e) => setSettings(prev => ({ ...prev, customReminderMessage: e.target.value }))}
+                  rows={3}
+                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  placeholder="Looking forward to our meeting..."
+                />
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Optional custom message to include in reminder emails
+                </p>
+              </div>
+            </>
           )}
 
           <div>

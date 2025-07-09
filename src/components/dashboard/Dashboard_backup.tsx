@@ -21,12 +21,14 @@ import {
 import { Card, CardContent } from '@/components/ui/Card';
 import { NotificationContainer } from '@/components/ui/Notification';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { useBookingStats } from '@/hooks/useBookingStats';
 
 export type DashboardView = 'overview' | 'availability' | 'booking-settings' | 'history' | 'accounts';
 
 export function Dashboard() {
   const { userProfile } = useAuth();
   const { notifications, removeNotification } = useNotifications();
+  const bookingStats = useBookingStats();
   const [currentView, setCurrentView] = useState<DashboardView>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -170,55 +172,81 @@ export function Dashboard() {
 
           {/* Enhanced Main Content - Mobile Responsive */}
           <div className="p-4 sm:p-6 space-y-6 sm:space-y-8">
-            {/* Enhanced Welcome Section - Mobile Responsive */}
-            <div className="relative overflow-hidden">
-              <Card className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white border-none shadow-2xl relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-indigo-600/20 backdrop-blur-3xl"></div>
-                <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
-                <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+            {/* Enhanced Welcome Section - Only show on Overview page */}
+            {currentView === 'overview' && (
+              <div className="relative overflow-hidden">
+                <Card className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white border-none shadow-2xl relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-indigo-600/20 backdrop-blur-3xl"></div>
+                  <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+                  <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
 
-                <CardContent className="p-4 sm:p-6 lg:p-8 relative z-10">
-                  <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between space-y-4 lg:space-y-0">
-                    <div className="space-y-3 sm:space-y-5 flex-1">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                        <span className="text-sm font-medium text-blue-100">
-                          You're online
-                        </span>
-                      </div>
-
-                      <div>
-                        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2 bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
-                          Hello, {userProfile?.displayName}! 👋
-                        </h2>
-                        <p className="text-blue-100 text-sm sm:text-base lg:text-lg font-medium leading-relaxed">
-                          Welcome to your personal scheduling HQ — define your availability, share your link, and let others book you effortlessly.
-                          <br className="hidden sm:block" />
-                          <span className="block sm:inline">It's like Calendly, but smarter. 🧠</span>
-                        </p>
-                      </div>
-
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-6 text-sm">
+                  <CardContent className="p-4 sm:p-6 lg:p-8 relative z-10">
+                    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between space-y-4 lg:space-y-0">
+                      <div className="space-y-3 sm:space-y-5 flex-1">
                         <div className="flex items-center space-x-2">
-                          <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-                          <span className="text-blue-100">12 bookings this week</span>
+                          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                          <span className="text-sm font-medium text-blue-100">
+                            You're online
+                          </span>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
-                          <span className="text-blue-100">3 pending</span>
+
+                        <div>
+                          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2 bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
+                            Hello, {userProfile?.displayName}! 👋
+                          </h2>
+                          <p className="text-blue-100 text-sm sm:text-base lg:text-lg font-medium leading-relaxed">
+                            Welcome to your personal scheduling HQ — define your availability, share your link, and let others book you effortlessly.
+                            <br className="hidden sm:block" />
+                            <span className="block sm:inline">It's like Calendly, but smarter. 🧠</span>
+                          </p>
+                        </div>
+
+                        {/* Dynamic Booking Stats */}
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-6 text-sm">
+                          {bookingStats.loading ? (
+                            <div className="flex items-center space-x-2">
+                              <div className="w-3 h-3 bg-blue-300 rounded-full animate-pulse"></div>
+                              <span className="text-blue-100">Loading stats...</span>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex items-center space-x-2">
+                                <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                                <span className="text-blue-100">
+                                  {bookingStats.thisWeekBookings} booking{bookingStats.thisWeekBookings !== 1 ? 's' : ''} this week
+                                </span>
+                              </div>
+                              {bookingStats.pendingBookings > 0 && (
+                                <div className="flex items-center space-x-2">
+                                  <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
+                                  <span className="text-blue-100">
+                                    {bookingStats.pendingBookings} pending
+                                  </span>
+                                </div>
+                              )}
+                              {bookingStats.totalBookings > 0 && (
+                                <div className="flex items-center space-x-2">
+                                  <div className="w-3 h-3 bg-blue-300 rounded-full"></div>
+                                  <span className="text-blue-100">
+                                    {bookingStats.totalBookings} total booking{bookingStats.totalBookings !== 1 ? 's' : ''}
+                                  </span>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="hidden sm:block lg:block">
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-white/20 hover:scale-105 transition-transform duration-300">
+                          <span className="text-3xl sm:text-4xl lg:text-5xl">📆</span>
                         </div>
                       </div>
                     </div>
-
-                    <div className="hidden sm:block lg:block">
-                      <div className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-white/20 hover:scale-105 transition-transform duration-300">
-                        <span className="text-3xl sm:text-4xl lg:text-5xl">📆</span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
             {/* Content with enhanced animations */}
             <div className="animate-fade-in">

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { collection, addDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { googleCalendarService } from '@/lib/googleCalendar';
+import { reminderService } from '@/lib/reminderService';
 import { User, UserProfile, AvailableSlot, BookingStatus } from '@/types';
 import { formatDateTime, isValidEmail } from '@/lib/utils';
 import { ArrowLeftIcon, CalendarDaysIcon, ClockIcon, UserIcon } from '@heroicons/react/24/outline';
@@ -142,6 +143,27 @@ export function BookingForm({ user, profile, selectedSlot, onComplete, onCancel 
 
       // Add to Firestore
       const bookingRef = await addDoc(collection(db, 'bookings'), bookingData);
+
+      // Create booking object for reminder scheduling
+      const createdBooking = {
+        id: bookingRef.id,
+        ...bookingData,
+        startTime: selectedSlot.start,
+        endTime: selectedSlot.end,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      // Schedule reminder if booking is confirmed
+      if (bookingStatus === BookingStatus.CONFIRMED) {
+        try {
+          await reminderService.scheduleReminder(createdBooking);
+          console.log('Reminder scheduled for confirmed booking:', bookingRef.id);
+        } catch (reminderError) {
+          console.error('Error scheduling reminder:', reminderError);
+          // Don't fail the booking if reminder scheduling fails
+        }
+      }
 
       // If auto-confirm is enabled and status is CONFIRMED, create Google Calendar event immediately
       if (bookingStatus === BookingStatus.CONFIRMED && profile.googleCalendarConnected) {
