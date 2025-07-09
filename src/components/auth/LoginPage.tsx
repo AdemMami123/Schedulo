@@ -28,51 +28,51 @@ export function LoginPage() {
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="py-12 text-center">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white sm:text-5xl md:text-6xl animate-fade-in">
+        <div className="py-8 sm:py-12 text-center">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white animate-fade-in">
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
               Schedulo
             </span>
           </h1>
-          <p className="mt-4 text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto animate-fade-in">
+          <p className="mt-4 text-lg sm:text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto animate-fade-in px-4">
             Smart scheduling made simple. Connect your calendar, set your availability, 
             and let others book time with you effortlessly.
           </p>
         </div>
 
         {/* Features */}
-        <div className="py-16">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center p-6 rounded-lg bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm animate-slide-in">
+        <div className="py-12 sm:py-16">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+            <div className="text-center p-4 sm:p-6 rounded-lg bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm animate-slide-in">
               <div className="flex justify-center mb-4">
-                <CalendarDaysIcon className="h-12 w-12 text-blue-600 dark:text-blue-400" />
+                <CalendarDaysIcon className="h-10 w-10 sm:h-12 sm:w-12 text-blue-600 dark:text-blue-400" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-2">
                 Calendar Integration
               </h3>
-              <p className="text-gray-600 dark:text-gray-300">
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
                 Connect with Google Calendar to sync your existing events and availability
               </p>
             </div>
-            <div className="text-center p-6 rounded-lg bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm animate-slide-in" style={{ animationDelay: '100ms' }}>
+            <div className="text-center p-4 sm:p-6 rounded-lg bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm animate-slide-in" style={{ animationDelay: '100ms' }}>
               <div className="flex justify-center mb-4">
-                <ClockIcon className="h-12 w-12 text-blue-600 dark:text-blue-400" />
+                <ClockIcon className="h-10 w-10 sm:h-12 sm:w-12 text-blue-600 dark:text-blue-400" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-2">
                 Smart Scheduling
               </h3>
-              <p className="text-gray-600 dark:text-gray-300">
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
                 Set your availability, buffer times, and let the system handle the rest
               </p>
             </div>
-            <div className="text-center p-6 rounded-lg bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm animate-slide-in" style={{ animationDelay: '200ms' }}>
+            <div className="text-center p-4 sm:p-6 rounded-lg bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm animate-slide-in" style={{ animationDelay: '200ms' }}>
               <div className="flex justify-center mb-4">
-                <UsersIcon className="h-12 w-12 text-blue-600 dark:text-blue-400" />
+                <UsersIcon className="h-10 w-10 sm:h-12 sm:w-12 text-blue-600 dark:text-blue-400" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-2">
                 Easy Booking
               </h3>
-              <p className="text-gray-600 dark:text-gray-300">
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
                 Share your booking link and let others schedule time with you instantly
               </p>
             </div>
@@ -80,8 +80,8 @@ export function LoginPage() {
         </div>
 
         {/* Sign In Section */}
-        <div className="py-16 flex justify-center">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 w-full max-w-md border border-gray-200 dark:border-gray-700">
+        <div className="py-12 sm:py-16 flex justify-center px-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 sm:p-8 w-full max-w-md border border-gray-200 dark:border-gray-700">
             <div className="text-center mb-8">
               <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CalendarDaysIcon className="h-8 w-8 text-white" />

@@ -84,10 +84,57 @@ export function isValidEmail(email: string): boolean {
 }
 
 export function generateUsername(displayName: string): string {
-  return displayName
+  const baseUsername = displayName
     .toLowerCase()
     .replace(/[^a-z0-9]/g, '')
     .slice(0, 20);
+  
+  // Add a timestamp suffix to ensure uniqueness
+  const timestamp = Date.now().toString().slice(-6);
+  return `${baseUsername}${timestamp}`;
+}
+
+export async function generateUniqueUsername(displayName: string, db: any): Promise<string> {
+  const { collection, query, where, getDocs } = await import('firebase/firestore');
+  
+  let baseUsername = displayName
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+    .slice(0, 15); // Leave room for suffix
+  
+  // If base username is empty, use 'user'
+  if (!baseUsername) {
+    baseUsername = 'user';
+  }
+  
+  let username = baseUsername;
+  let counter = 1;
+  
+  // Check if username exists and find a unique one
+  while (true) {
+    const usernameQuery = query(
+      collection(db, 'users'),
+      where('username', '==', username)
+    );
+    
+    const querySnapshot = await getDocs(usernameQuery);
+    
+    if (querySnapshot.empty) {
+      // Username is unique, we can use it
+      return username;
+    }
+    
+    // Username exists, try with a number suffix
+    username = `${baseUsername}${counter}`;
+    counter++;
+    
+    // Safety check to prevent infinite loop
+    if (counter > 999) {
+      // Fallback: use timestamp
+      const timestamp = Date.now().toString().slice(-6);
+      return `${baseUsername}${timestamp}`;
+    }
+  }
 }
 
 export function getWeekDays(): string[] {

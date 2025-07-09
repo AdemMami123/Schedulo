@@ -26,7 +26,7 @@ export type DashboardView = 'overview' | 'availability' | 'booking-settings' | '
 
 export function Dashboard() {
   const { userProfile } = useAuth();
-  const { notifications, toastNotifications, removeNotification } = useNotifications();
+  const { notifications, removeNotification } = useNotifications();
   const [currentView, setCurrentView] = useState<DashboardView>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -230,7 +230,7 @@ export function Dashboard() {
       
       {/* Notification Container */}
       <NotificationContainer 
-        notifications={toastNotifications} 
+        notifications={notifications} 
         onRemove={removeNotification} 
       />
     </div>

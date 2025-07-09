@@ -11,6 +11,26 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'Schedulo - Smart Scheduling Made Easy',
   description: 'Smart scheduling application with calendar integration and availability management',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false, // Prevent zoom on form inputs
+  },
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#1f2937' },
+  ],
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Schedulo',
+  },
+  formatDetection: {
+    telephone: false,
+    email: false,
+    address: false,
+  },
 };
 
 export default function RootLayout({
@@ -21,6 +41,13 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Schedulo" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="theme-color" content="#3b82f6" />
+        <link rel="apple-touch-icon" href="/icon-192x192.png" />
         <script async defer src="https://apis.google.com/js/api.js"></script>
         <script async defer src="https://accounts.google.com/gsi/client"></script>
         <script

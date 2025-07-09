@@ -168,25 +168,27 @@ export function AvailabilitySettings() {
   };
 
   const handleSave = async () => {
-    if (!userProfile) return;      // Validate all time slots
-      for (const day of DAYS_OF_WEEK) {
-        const dayAvailability = availability[day];
-        if (dayAvailability.enabled) {
-          for (const slot of dayAvailability.timeSlots) {
-            if (!validateTimeSlot(slot.start, slot.end)) {
-              setSaveStatus('error');
-              addNotification({
-                type: 'error',
-                title: 'Invalid Time Slot',
-                message: `Invalid time slot for ${capitalizeFirst(day)}: End time must be after start time.`,
-                duration: 0, // No floating toast
-                persistent: true,
-              });
-              return;
-            }
+    if (!userProfile) return;
+    
+    // Validate all time slots
+    for (const day of DAYS_OF_WEEK) {
+      const dayAvailability = availability[day];
+      if (dayAvailability.enabled) {
+        for (const slot of dayAvailability.timeSlots) {
+          if (!validateTimeSlot(slot.start, slot.end)) {
+            setSaveStatus('error');
+            addNotification({
+              type: 'error',
+              title: 'Invalid Time Slot',
+              message: `Invalid time slot for ${capitalizeFirst(day)}: End time must be after start time.`,
+              duration: 5000,
+              persistent: true,
+            });
+            return;
           }
         }
       }
+    }
 
     setSaving(true);
     setSaveStatus('idle');
@@ -233,7 +235,7 @@ export function AvailabilitySettings() {
         type: 'success',
         title: 'Settings Saved',
         message: 'Your availability settings have been saved successfully!',
-        duration: 2000, // Hide after 2 seconds
+        duration: 3000,
         persistent: true,
       });
       setTimeout(() => setSaveStatus('idle'), 3000);
@@ -249,7 +251,7 @@ export function AvailabilitySettings() {
         type: 'error',
         title: 'Save Failed',
         message: 'Failed to save availability settings. Please try again.',
-        duration: 0, // No floating toast for errors, only in bell
+        duration: 5000,
         persistent: true,
       });
       setTimeout(() => setSaveStatus('idle'), 3000);
@@ -333,7 +335,7 @@ export function AvailabilitySettings() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Timezone

@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useState } from 'react';
+import React, { Fragment, useState } from 'react';
 import { Transition } from '@headlessui/react';
 import { 
   CheckCircleIcon, 
@@ -69,8 +69,19 @@ function NotificationItem({ notification, onRemove }: NotificationProps) {
     setTimeout(() => onRemove(notification.id), 300);
   };
 
-  // Progress bar animation duration
+  // Auto-hide after duration if specified
   const duration = notification.duration || 5000;
+  
+  // Set up auto-hide timer if duration > 0
+  React.useEffect(() => {
+    if (duration > 0) {
+      const timer = setTimeout(() => {
+        handleRemove();
+      }, duration);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [duration]);
 
   return (
     <Transition

@@ -80,6 +80,8 @@ interface BookingWithDetails extends Booking {
   isPast: boolean;
   canCancel: boolean;
   canReschedule: boolean;
+  isHost: boolean; // Whether the current user is the calendar owner (host)
+  isGuest: boolean; // Whether the current user is the guest (requester)
 }
 
 type FilterType = 'all' | 'upcoming' | 'past' | 'pending' | 'confirmed' | 'cancelled' | 'completed';
@@ -102,43 +104,116 @@ export function BookingHistory() {
   useEffect(() => {
     if (userProfile) {
       loadBookings();
-      fetchUserProfileData();
+      fetchUserProfile();
     }
   }, [userProfile]);
 
-  const fetchUserProfileData = async () => {
-    if (!userProfile) return;
+  const fetchUserProfile = async () => {
+    if (!userProfile?.id) return;
     
     try {
-      const profileDoc = await getDoc(doc(db, 'userProfiles', userProfile.id));
-      if (profileDoc.exists()) {
-        const profileData = profileDoc.data();
-        setUserHasGoogleCalendar(profileData.googleCalendarConnected || false);
+      const profileRef = doc(db, 'userProfiles', userProfile.id);
+      const profileSnap = await getDoc(profileRef);
+      
+      if (profileSnap.exists()) {
+        const profileData = profileSnap.data();
+        setUserHasGoogleCalendar(
+          profileData.googleCalendarConnected === true || 
+          profileData.googleCalendar?.connected === true
+        );
+      } else {
+        setUserHasGoogleCalendar(false);
       }
     } catch (error) {
-      console.error('Error fetching user profile data:', error);
+      console.error('Error fetching user profile:', error);
+      setUserHasGoogleCalendar(false);
     }
   };
+
+  useEffect(() => {
+    fetchUserProfile();
+  }, [userProfile?.id]);
 
   useEffect(() => {
     filterAndSortBookings();
   }, [bookings, searchTerm, selectedFilter, selectedSort]);
 
   const loadBookings = async () => {
-    if (!userProfile) return;
+    if (!user || !userProfile) return;
 
     try {
       setLoading(true);
+
+      // Debug logging
+      console.log('=== BookingHistory Debug ===');
+      console.log('Current user (Firebase):', {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName
+      });
+      console.log('Current userProfile:', {
+        id: userProfile.id,
+        email: userProfile.email,
+        displayName: userProfile.displayName
+      });
+
+      // IMPORTANT: Use user.uid for consistency with BookingForm
+      // BookingForm saves userId as user.id, so we need to match that
+      const currentUserId = user.uid; // This should match what's saved in BookingForm
       
-      const bookingsQuery = query(
+      console.log('Using currentUserId for host query:', currentUserId);
+
+      // Query 1: Bookings where I'm the host (calendar owner)
+      // This should match bookings where userId === current user's ID
+      const hostBookingsQuery = query(
         collection(db, 'bookings'),
-        where('userId', '==', userProfile.id),
+        where('userId', '==', currentUserId),
         orderBy('createdAt', 'desc')
       );
 
-      const bookingsSnapshot = await getDocs(bookingsQuery);
-      const fetchedBookings = bookingsSnapshot.docs.map(doc => {
+      // Query 2: Bookings where I'm the guest (requester)
+      // This should match bookings where guestEmail === current user's email
+      const guestBookingsQuery = query(
+        collection(db, 'bookings'),
+        where('guestEmail', '==', user.email),
+        orderBy('createdAt', 'desc')
+      );
+
+      const [hostBookingsSnapshot, guestBookingsSnapshot] = await Promise.all([
+        getDocs(hostBookingsQuery),
+        getDocs(guestBookingsQuery)
+      ]);
+
+      console.log('Host bookings found:', hostBookingsSnapshot.docs.length);
+      console.log('Guest bookings found:', guestBookingsSnapshot.docs.length);
+      
+      // Additional debugging
+      console.log('User ID being used for host query:', currentUserId);
+      console.log('User email being used for guest query:', user.email);
+      console.log('Raw host booking docs:', hostBookingsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        userId: doc.data().userId,
+        guestEmail: doc.data().guestEmail,
+        guestName: doc.data().guestName
+      })));
+      console.log('Raw guest booking docs:', guestBookingsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        userId: doc.data().userId,
+        guestEmail: doc.data().guestEmail,
+        guestName: doc.data().guestName
+      })));
+
+      // Process host bookings (where I can accept/decline)
+      const hostBookings = hostBookingsSnapshot.docs.map(doc => {
         const data = doc.data();
+        console.log('Host booking data:', {
+          id: doc.id,
+          userId: data.userId,
+          guestEmail: data.guestEmail,
+          guestName: data.guestName,
+          currentUserCanAcceptDecline: data.userId === currentUserId
+        });
+        
         const booking: Booking = {
           id: doc.id,
           ...data,
@@ -148,10 +223,42 @@ export function BookingHistory() {
           updatedAt: data.updatedAt?.toDate() || new Date(),
         } as Booking;
 
-        return transformBooking(booking);
+        return transformBooking(booking, true); // true indicates I'm the host
       });
 
-      setBookings(fetchedBookings);
+      // Process guest bookings (where I can only view/cancel)
+      const guestBookings = guestBookingsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        console.log('Guest booking data:', {
+          id: doc.id,
+          userId: data.userId,
+          guestEmail: data.guestEmail,
+          guestName: data.guestName,
+          currentUserIsGuest: data.guestEmail === user.email
+        });
+        
+        const booking: Booking = {
+          id: doc.id,
+          ...data,
+          startTime: data.startTime?.toDate() || new Date(),
+          endTime: data.endTime?.toDate() || new Date(),
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date(),
+        } as Booking;
+
+        return transformBooking(booking, false); // false indicates I'm the guest
+      });
+
+      // Combine and deduplicate bookings (in case user booked with themselves)
+      const allBookings = [...hostBookings, ...guestBookings];
+      const uniqueBookings = allBookings.filter((booking, index, self) => 
+        index === self.findIndex(b => b.id === booking.id)
+      );
+
+      // Sort by creation date (newest first)
+      uniqueBookings.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+      setBookings(uniqueBookings);
     } catch (error) {
       console.error('Error loading bookings:', error);
       addNotification({
@@ -166,12 +273,29 @@ export function BookingHistory() {
     }
   };
 
-  const transformBooking = (booking: Booking): BookingWithDetails => {
+  const transformBooking = (booking: Booking, isHost: boolean): BookingWithDetails => {
     const now = new Date();
     const isUpcoming = booking.startTime > now;
     const isPast = booking.endTime < now;
     const canCancel = isUpcoming && booking.status !== BookingStatus.CANCELLED;
     const canReschedule = isUpcoming && booking.status === BookingStatus.CONFIRMED;
+
+    // Double-check the host/guest logic to prevent confusion
+    const actualIsHost = booking.userId === userProfile?.id;
+    const actualIsGuest = booking.guestEmail === user?.email;
+    
+    // Log any discrepancies
+    if (isHost !== actualIsHost) {
+      console.warn('Host/Guest logic mismatch:', {
+        bookingId: booking.id,
+        passedIsHost: isHost,
+        actualIsHost,
+        bookingUserId: booking.userId,
+        currentUserId: userProfile?.id,
+        guestEmail: booking.guestEmail,
+        currentUserEmail: user?.email
+      });
+    }
 
     const statusConfig = {
       [BookingStatus.PENDING]: {
@@ -206,6 +330,8 @@ export function BookingHistory() {
       isPast,
       canCancel,
       canReschedule,
+      isHost: actualIsHost, // Use the actual calculated value
+      isGuest: actualIsGuest, // Use the actual calculated value
     };
   };
 
@@ -266,10 +392,40 @@ export function BookingHistory() {
     try {
       setLoading(true);
       
+      // Verify that the current user is the host/calendar owner
+      if (!userProfile?.id || !user?.uid) {
+        throw new Error('User authentication required');
+      }
+      
       // Get the current booking data first
       const bookingToUpdate = bookings.find(b => b.id === bookingId);
       if (!bookingToUpdate) {
         throw new Error('Booking not found');
+      }
+      
+      // CRITICAL: Only allow the calendar owner (host) to modify booking status
+      // The calendar owner is the person whose userId matches the booking.userId
+      if (bookingToUpdate.userId !== userProfile.id) {
+        console.error('Authorization check failed:', {
+          bookingId: bookingId,
+          bookingUserId: bookingToUpdate.userId,
+          currentUserProfileId: userProfile.id,
+          currentUserUid: user.uid,
+          userProfileIdMatchesUserUid: userProfile.id === user.uid,
+          errorMessage: 'Only the calendar owner can modify booking status'
+        });
+        throw new Error('Unauthorized: Only the calendar owner can modify booking status');
+      }
+      
+      // Additional safety check: Make sure the current user is the host, not the guest
+      if (bookingToUpdate.guestEmail === user.email) {
+        console.error('Guest tried to modify booking status:', {
+          bookingId: bookingId,
+          guestEmail: bookingToUpdate.guestEmail,
+          currentUserEmail: user.email,
+          errorMessage: 'Guests cannot modify booking status'
+        });
+        throw new Error('Unauthorized: Guests cannot modify booking status');
       }
       
       // Only proceed if the status is actually changing
@@ -285,10 +441,11 @@ export function BookingHistory() {
       
       // If the status is being changed to CONFIRMED, create a Google Calendar event
       if (newStatus === BookingStatus.CONFIRMED && 
-          userHasGoogleCalendar && 
           bookingToUpdate.status !== BookingStatus.CONFIRMED) {
         try {
-          console.log('Creating Google Calendar event for confirmed booking');
+          console.log('Checking Google Calendar connection for confirmed booking');
+          console.log('Current user:', user);
+          console.log('UserProfile:', userProfile);
           
           // Double check that user has Google Calendar connected
           let profileData = userProfile;
@@ -300,27 +457,44 @@ export function BookingHistory() {
               if (profileDoc.exists()) {
                 const data = profileDoc.data();
                 profileData = data as any;
+                console.log('Fetched profile data:', profileData);
               }
             } catch (error) {
               console.error("Error fetching user profile:", error);
             }
           }
           
-          // Check if user has Google Calendar connected
-          const hasGoogleCalendar = (profileData as any)?.googleCalendarConnected || false;
+          // Check if user has Google Calendar connected (check both top-level and nested properties)
+          const hasGoogleCalendar = Boolean(
+            profileData && 
+            (
+              (profileData as any).googleCalendarConnected || 
+              ((profileData as any).googleCalendar?.connected)
+            )
+          );
+          
+          console.log('Google Calendar connection check:', {
+            profileData: profileData,
+            googleCalendarConnected: (profileData as any)?.googleCalendarConnected,
+            nestedConnected: (profileData as any)?.googleCalendar?.connected,
+            hasGoogleCalendar
+          });
           
           if (!hasGoogleCalendar) {
             console.warn('User does not have Google Calendar connected, skipping event creation');
             addNotification({
               type: 'warning',
               title: 'Calendar Not Connected',
-              message: 'Google Calendar is not connected. The booking has been confirmed, but no calendar event was created.',
+              message: 'Google Calendar is not connected. The booking has been confirmed, but no calendar event was created. Connect Google Calendar in Settings.',
               duration: 5000,
               persistent: true,
             });
           } else {
-            // Initialize Google Calendar service
-            await googleCalendarService.initialize();
+            console.log('Creating Google Calendar event for confirmed booking');
+            console.log('Initializing Google Calendar service with user ID:', user?.uid);
+            
+            // Initialize Google Calendar service with the current user ID
+            await googleCalendarService.initializeForUser(user?.uid || '');
             
             // Create calendar event
             const calendarEvent = {
@@ -377,11 +551,10 @@ export function BookingHistory() {
       
       // If canceling and there's a Google Calendar event, delete it
       if (newStatus === BookingStatus.CANCELLED && 
-          bookingToUpdate.googleCalendarEventId &&
-          userHasGoogleCalendar) {
+          bookingToUpdate.googleCalendarEventId) {
         try {
-          // Initialize Google Calendar service
-          await googleCalendarService.initialize();
+          // Initialize Google Calendar service with the current user ID
+          await googleCalendarService.initializeForUser(user?.uid || '');
           
           // Delete the calendar event
           const deleted = await googleCalendarService.deleteEvent(bookingToUpdate.googleCalendarEventId);
@@ -422,7 +595,7 @@ export function BookingHistory() {
               status: newStatus, 
               updatedAt: new Date(),
               googleCalendarEventId: updates.googleCalendarEventId || booking.googleCalendarEventId
-            })
+            }, booking.isHost) // Preserve the isHost status
           : booking
       ));
 
@@ -432,49 +605,45 @@ export function BookingHistory() {
         const guest = {
           name: bookingToUpdate.guestName,
           email: bookingToUpdate.guestEmail,
-          notes: bookingToUpdate.guestNotes
+          notes: bookingToUpdate.guestNotes || ''
         };
         
-        // Log the status change email we're about to send
-        console.log(`Sending booking status update email to ${guest.email} with status: ${newStatus}`);
-        
-        // Ensure we have a user to send
-        if (user) {
-          // Send status update via API route
-          const emailResponse = await fetch('/api/email/confirmation', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
+        // Send the email via API
+        const emailResponse = await fetch('/api/email/status-update', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            host: {
+              displayName: userProfile?.displayName || 'Host',
+              email: userProfile?.email || '',
             },
-            body: JSON.stringify({
-              host: {
-                id: user.uid,
-                email: user.email || '',
-                displayName: user.displayName || 'Host',
-                photoURL: user.photoURL || undefined,
-                timezone: userProfile?.timezone || 'UTC'
-              },
-              guest,
-              selectedSlot: {
-                start: bookingToUpdate.startTime,
-                end: bookingToUpdate.endTime,
-                duration: bookingToUpdate.duration
-              },
-              status: newStatus
-            }),
-          });
+            guest,
+            booking: {
+              id: bookingId,
+              startTime: bookingToUpdate.startTime,
+              endTime: bookingToUpdate.endTime,
+              duration: bookingToUpdate.duration,
+              status: newStatus,
+            },
+          }),
+        });
 
-          if (!emailResponse.ok) {
-            console.error('Failed to send status update email:', await emailResponse.text());
-          } else {
-            console.log(`Status update email sent to guest for booking ${bookingId}`);
-          }
+        if (!emailResponse.ok) {
+          console.error('Failed to send status update email:', await emailResponse.text());
         } else {
-          console.warn('User not available, skipping email notification');
+          console.log(`Status update email sent to guest for booking ${bookingId}`);
         }
       } catch (emailError) {
-        console.error('Failed to send status update email:', emailError);
-        // Don't block the process if email fails
+        console.error('Error sending status update email:', emailError);
+        addNotification({
+          type: 'warning',
+          title: 'Email Not Sent',
+          message: 'Could not send status update email to the guest.',
+          duration: 5000,
+          persistent: true,
+        });
       }
 
       const statusText = newStatus === BookingStatus.CONFIRMED ? 'confirmed' : 
@@ -490,10 +659,23 @@ export function BookingHistory() {
       });
     } catch (error) {
       console.error('Error updating booking:', error);
+      
+      // Provide specific error messages based on the error type
+      let errorMessage = 'Failed to update the booking. Please try again.';
+      if (error instanceof Error) {
+        if (error.message.includes('Unauthorized')) {
+          errorMessage = 'You are not authorized to modify this booking. Only the calendar owner can accept or decline bookings.';
+        } else if (error.message.includes('authentication')) {
+          errorMessage = 'Authentication required. Please log in and try again.';
+        } else if (error.message === 'Booking not found') {
+          errorMessage = 'Booking not found. It may have been deleted or modified.';
+        }
+      }
+      
       addNotification({
         type: 'error',
         title: 'Update Failed',
-        message: 'Failed to update the booking. Please try again.',
+        message: errorMessage,
         duration: 0,
         persistent: true,
       });
@@ -590,7 +772,7 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
           <h2 className="text-xl font-semibold text-slate-800 dark:text-white mb-4">
             Getting Started with Schedulo
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             <div className="flex flex-col items-center text-center p-4 rounded-lg bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600">
               <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-3">
                 <CalendarDaysIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
@@ -617,7 +799,7 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
               </div>
               <h3 className="text-lg font-medium text-slate-800 dark:text-white mb-2">3. Manage Bookings</h3>
               <p className="text-slate-600 dark:text-slate-300 text-sm">
-                Confirm, cancel, or mark bookings as completed right from this page
+                Confirm, cancel, or mark bookings as completed. As the calendar owner, only you can approve booking requests.
               </p>
             </div>
           </div>
@@ -667,7 +849,7 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
               </span>
             </div>
             <p className="text-slate-600 dark:text-slate-400 mt-1">
-              View, approve, and manage your scheduling calendar
+              View, approve, and manage your scheduling calendar. Only you can accept or decline booking requests.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -834,9 +1016,21 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
                           </div>
                         </div>
                         <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-                            {booking.guestName}
-                          </h3>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                              {booking.guestName}
+                            </h3>
+                            {booking.isGuest && (
+                              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 text-xs font-medium rounded-full">
+                                Your booking
+                              </span>
+                            )}
+                            {booking.isHost && (
+                              <span className="px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 text-xs font-medium rounded-full">
+                                With you
+                              </span>
+                            )}
+                          </div>
                           <div className="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-400">
                             <EnvelopeIcon className="h-4 w-4" />
                             <span>{booking.guestEmail}</span>
@@ -874,19 +1068,37 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
                   </div>
                   
                   <div className="flex justify-end mt-4 gap-2">
-                    {/* Status-specific action buttons */}
-                    {booking.status === BookingStatus.PENDING && (
+                    {/* Status-specific action buttons - Only available to calendar owner/host */}
+                    {booking.isHost && booking.status === BookingStatus.PENDING && (
                       <>
                         <button
-                          onClick={() => handleUpdateBookingStatus(booking.id, BookingStatus.CONFIRMED)}
+                          onClick={() => {
+                            console.log('Button visibility check:', {
+                              bookingId: booking.id,
+                              isHost: booking.isHost,
+                              status: booking.status,
+                              shouldShowButtons: booking.isHost && booking.status === BookingStatus.PENDING
+                            });
+                            handleUpdateBookingStatus(booking.id, BookingStatus.CONFIRMED);
+                          }}
                           className="flex items-center gap-1 px-3 py-1.5 bg-green-100 text-green-700 hover:bg-green-200 rounded-md transition-colors dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/40"
+                          title="Confirm this booking request"
                         >
                           <CheckCircleIcon className="h-4 w-4" />
                           <span className="text-xs font-medium">Confirm</span>
                         </button>
                         <button
-                          onClick={() => handleUpdateBookingStatus(booking.id, BookingStatus.CANCELLED)}
+                          onClick={() => {
+                            console.log('Button visibility check:', {
+                              bookingId: booking.id,
+                              isHost: booking.isHost,
+                              status: booking.status,
+                              shouldShowButtons: booking.isHost && booking.status === BookingStatus.PENDING
+                            });
+                            handleUpdateBookingStatus(booking.id, BookingStatus.CANCELLED);
+                          }}
                           className="flex items-center gap-1 px-3 py-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded-md transition-colors dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40"
+                          title="Decline this booking request"
                         >
                           <XCircleIcon className="h-4 w-4" />
                           <span className="text-xs font-medium">Cancel</span>
@@ -894,7 +1106,7 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
                       </>
                     )}
                     
-                    {booking.status === BookingStatus.CONFIRMED && booking.isPast && (
+                    {booking.isHost && booking.status === BookingStatus.CONFIRMED && booking.isPast && (
                       <button
                         onClick={() => handleUpdateBookingStatus(booking.id, BookingStatus.COMPLETED)}
                         className="flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-md transition-colors dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40"

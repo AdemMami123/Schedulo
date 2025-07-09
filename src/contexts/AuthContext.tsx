@@ -5,7 +5,7 @@ import { User, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/aut
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, googleProvider, db } from '@/lib/firebase';
 import { User as AppUser } from '@/types';
-import { generateUsername } from '@/lib/utils';
+import { generateUniqueUsername } from '@/lib/utils';
 
 interface AuthContextType {
   user: User | null;
@@ -63,7 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Check if username exists, if not generate one
         let username = userData.username;
         if (!username) {
-          username = generateUsername(firebaseUser.displayName!);
+          username = await generateUniqueUsername(firebaseUser.displayName!, db);
           // Try to update the user document with the generated username
           try {
             await setDoc(doc(db, 'users', firebaseUser.uid), {
@@ -87,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
       } else {
         // Create new user profile
-        const username = generateUsername(firebaseUser.displayName!);
+        const username = await generateUniqueUsername(firebaseUser.displayName!, db);
         const newUser: Partial<AppUser> = {
           email: firebaseUser.email!,
           displayName: firebaseUser.displayName!,
@@ -117,7 +117,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Error loading user profile:', error);
       
       // Fallback: create a basic user profile from Firebase data
-      const username = generateUsername(firebaseUser.displayName!);
+      const username = await generateUniqueUsername(firebaseUser.displayName!, db);
       setUserProfile({
         id: firebaseUser.uid,
         email: firebaseUser.email!,

@@ -22,7 +22,13 @@ export function useGoogleCalendar(): CalendarIntegration {
   }, [user]);
 
   const checkConnectionStatus = async () => {
+    if (!user?.uid) {
+      setIsConnected(false);
+      return;
+    }
+    
     try {
+      await googleCalendarService.initializeForUser(user.uid);
       const token = await googleCalendarService.getAccessToken();
       setIsConnected(!!token);
     } catch (error) {
@@ -32,9 +38,13 @@ export function useGoogleCalendar(): CalendarIntegration {
   };
 
   const connect = async () => {
+    if (!user?.uid) {
+      throw new Error('User not authenticated');
+    }
+    
     setIsConnecting(true);
     try {
-      await googleCalendarService.initialize();
+      await googleCalendarService.initializeForUser(user.uid);
       const token = await googleCalendarService.getAccessToken();
       setIsConnected(!!token);
       
@@ -60,9 +70,10 @@ export function useGoogleCalendar(): CalendarIntegration {
   };
 
   const checkAvailability = async (startTime: Date, endTime: Date): Promise<boolean> => {
-    if (!isConnected) return true;
+    if (!isConnected || !user?.uid) return true;
     
     try {
+      await googleCalendarService.initializeForUser(user.uid);
       return await googleCalendarService.checkAvailability(startTime, endTime);
     } catch (error) {
       console.error('Error checking availability:', error);

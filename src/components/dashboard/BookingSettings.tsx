@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { UserProfile } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -69,6 +69,7 @@ export function BookingSettings() {
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [copied, setCopied] = useState(false);
+  const [connectingCalendar, setConnectingCalendar] = useState(false);
 
   // Form state
   const [settings, setSettings] = useState({
@@ -110,7 +111,7 @@ export function BookingSettings() {
           defaultMeetingDuration: profileData.defaultMeetingDuration || 30,
           bufferTimeBefore: profileData.bufferTimeBefore || 0,
           bufferTimeAfter: profileData.bufferTimeAfter || 0,
-          autoConfirmBookings: true,
+          autoConfirmBookings: profileData.autoConfirmBookings ?? true,
           requireGuestInfo: true,
           allowCancellation: true,
           cancellationNotice: 24,
@@ -144,6 +145,44 @@ export function BookingSettings() {
     }
   }, [userProfile, loadProfile]);
 
+  // Check URL parameters for Google Calendar connection status
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const status = params.get('status');
+      const error = params.get('error');
+      
+      if (status === 'calendar_connected') {
+        addNotification({
+          type: 'success',
+          title: 'Google Calendar Connected',
+          message: 'Your Google Calendar has been successfully connected.',
+          duration: 5000,
+          persistent: true,
+        });
+        
+        // Clear the status param from URL
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+        
+        // Refresh profile data
+        loadProfile();
+      } else if (error) {
+        addNotification({
+          type: 'error',
+          title: 'Google Calendar Connection Failed',
+          message: `Failed to connect Google Calendar: ${error.replace(/_/g, ' ')}`,
+          duration: 5000,
+          persistent: true,
+        });
+        
+        // Clear the error param from URL
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+      }
+    }
+  }, [addNotification, loadProfile]);
+  
   const handleSave = async () => {
     if (!userProfile) return;
 
@@ -161,6 +200,7 @@ export function BookingSettings() {
         publicBookingEnabled: settings.publicBookingEnabled,
         bookingPageTitle: settings.bookingPageTitle,
         bookingPageDescription: settings.bookingPageDescription,
+        autoConfirmBookings: settings.autoConfirmBookings,
         googleCalendarConnected: profile?.googleCalendarConnected ?? false,
         weeklyAvailability: profile?.weeklyAvailability || {},
         updatedAt: serverTimestamp(),
@@ -234,6 +274,127 @@ export function BookingSettings() {
     
     const bookingUrl = `${window.location.origin}/schedule/${userProfile.username}`;
     window.open(bookingUrl, '_blank');
+  };
+
+  const handleGoogleCalendarToggle = async () => {
+    if (!userProfile) return;
+
+    const newState = !profile?.googleCalendarConnected;
+
+    setSaving(true);
+    setSaveStatus('idle');
+
+    try {
+      await updateDoc(doc(db, 'userProfiles', userProfile.id), {
+        googleCalendarConnected: newState,
+        updatedAt: serverTimestamp(),
+      });
+
+      setProfile(prev => ({
+        ...prev,
+        googleCalendarConnected: newState,
+        updatedAt: new Date(),
+      } as UserProfile));
+
+      setSaveStatus('success');
+      addNotification({
+        type: 'success',
+        title: 'Settings Saved',
+        message: 'Your Google Calendar connection settings have been saved successfully!',
+        duration: 2000, // Hide after 2 seconds
+        persistent: true,
+      });
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    } catch (error) {
+      console.error('Error saving Google Calendar settings:', error);
+      setSaveStatus('error');
+      addNotification({
+        type: 'error',
+        title: 'Save Failed',
+        message: 'Failed to save Google Calendar settings. Please try again.',
+        duration: 0, // No floating toast for errors, only in bell
+        persistent: true,
+      });
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Function to initiate Google Calendar connection
+  const handleConnectGoogleCalendar = async () => {
+    try {
+      setConnectingCalendar(true);
+      
+      const response = await fetch('/api/auth/google-calendar', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': userProfile?.id || '',
+        },
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to initiate Google Calendar connection');
+      }
+      
+      const data = await response.json();
+      
+      // Redirect to Google's OAuth consent screen
+      window.location.href = data.url;
+    } catch (error) {
+      console.error('Error connecting Google Calendar:', error);
+      addNotification({
+        type: 'error',
+        title: 'Connection Failed',
+        message: error instanceof Error ? error.message : 'Failed to connect Google Calendar',
+        duration: 5000,
+        persistent: true,
+      });
+    } finally {
+      setConnectingCalendar(false);
+    }
+  };
+  
+  const handleDisconnectGoogleCalendar = async () => {
+    try {
+      setConnectingCalendar(true);
+      
+      if (!userProfile) {
+        throw new Error('User profile not found');
+      }
+      
+      // Update the user profile to disconnect Google Calendar
+      const profileRef = doc(db, 'userProfiles', userProfile.id);
+      await updateDoc(profileRef, {
+        googleCalendarConnected: false,
+        'googleCalendar.connected': false,
+        updatedAt: new Date(),
+      });
+      
+      addNotification({
+        type: 'success',
+        title: 'Google Calendar Disconnected',
+        message: 'Your Google Calendar has been disconnected.',
+        duration: 5000,
+        persistent: true,
+      });
+      
+      // Refresh profile data
+      loadProfile();
+    } catch (error) {
+      console.error('Error disconnecting Google Calendar:', error);
+      addNotification({
+        type: 'error',
+        title: 'Disconnection Failed',
+        message: error instanceof Error ? error.message : 'Failed to disconnect Google Calendar',
+        duration: 5000,
+        persistent: true,
+      });
+    } finally {
+      setConnectingCalendar(false);
+    }
   };
 
   if (loading) {
@@ -655,6 +816,123 @@ export function BookingSettings() {
               className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
               placeholder="Looking forward to our meeting..."
             />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Google Calendar Integration */}
+      <Card className="border-0 bg-white dark:bg-slate-800">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <CalendarDaysIcon className="h-5 w-5 text-red-500" />
+            <span>Google Calendar Integration</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-medium text-slate-900 dark:text-white">
+                Connect to Google Calendar
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Sync your bookings with Google Calendar
+              </p>
+            </div>
+            <Switch
+              checked={profile?.googleCalendarConnected || false}
+              onChange={handleGoogleCalendarToggle}
+            />
+          </div>
+
+          {profile?.googleCalendarConnected && (
+            <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+              <div className="flex items-center space-x-3">
+                <CheckCircleIcon className="h-5 w-5 text-green-500" />
+                <div>
+                  <h4 className="font-medium text-green-800 dark:text-green-200">
+                    Google Calendar Connected
+                  </h4>
+                  <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                    Your Google Calendar is connected. Bookings will be synced automatically.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
+                Google Calendar Email
+              </label>
+              <input
+                type="email"
+                value={profile?.googleCalendar?.connectedAt ? 'Connected' : ''}
+                disabled
+                className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Calendar connected"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
+                Calendar Sync Frequency
+              </label>
+              <select
+                value={15}
+                disabled
+                className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value={5}>Every 5 minutes</option>
+                <option value={15}>Every 15 minutes</option>
+                <option value={30}>Every 30 minutes</option>
+                <option value={60}>Every hour</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            {!profile?.googleCalendarConnected ? (
+              <button
+                onClick={handleConnectGoogleCalendar}
+                disabled={connectingCalendar}
+                className={cn(
+                  "flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200",
+                  connectingCalendar
+                    ? "bg-slate-400 text-white cursor-not-allowed"
+                    : "bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 hover:shadow-lg hover:scale-105"
+                )}
+              >
+                {connectingCalendar ? (
+                  <LoadingSpinner size="sm" />
+                ) : (
+                  <>
+                    <LinkIcon className="h-5 w-5" />
+                    <span>Connect Google Calendar</span>
+                  </>
+                )}
+              </button>
+            ) : (
+              <button
+                onClick={handleDisconnectGoogleCalendar}
+                disabled={connectingCalendar}
+                className={cn(
+                  "flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200",
+                  connectingCalendar
+                    ? "bg-slate-400 text-white cursor-not-allowed"
+                    : "bg-red-100 text-red-700 hover:bg-red-200"
+                )}
+              >
+                {connectingCalendar ? (
+                  <LoadingSpinner size="sm" />
+                ) : (
+                  <>
+                    <Cog6ToothIcon className="h-5 w-5" />
+                    <span>Disconnect Google Calendar</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </CardContent>
       </Card>

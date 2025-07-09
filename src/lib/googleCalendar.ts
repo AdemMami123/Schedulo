@@ -1,5 +1,6 @@
 import { auth } from '@/lib/firebase';
-import { useNotifications } from '@/contexts/NotificationContext';
+import { db } from '@/lib/firebase';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
 export interface CalendarEvent {
   id?: string;
@@ -35,8 +36,10 @@ class GoogleCalendarError extends Error {
 export class GoogleCalendarService {
   private static instance: GoogleCalendarService;
   private accessToken: string | null = null;
+  private refreshToken: string | null = null;
   private tokenExpiryTime: number = 0;
   private refreshInProgress: boolean = false;
+  private userId: string | null = null;
 
   private constructor() {}
 
@@ -47,17 +50,85 @@ export class GoogleCalendarService {
     return GoogleCalendarService.instance;
   }
 
+  // Create a new instance for a specific user (useful for public booking pages)
+  public static createForUser(userId: string): GoogleCalendarService {
+    const instance = new GoogleCalendarService();
+    instance.userId = userId;
+    return instance;
+  }
+
   private logCalendarAction(action: string, details?: any): void {
     console.log(`[Google Calendar] ${action}`, details ? details : '');
   }
 
-  public async initialize(): Promise<void> {
+  public async initialize(userId?: string): Promise<void> {
     try {
-      await this.refreshAccessToken();
+      // If userId is provided, use it (for public booking page checks)
+      if (userId) {
+        this.userId = userId;
+      } else {
+        // Otherwise, use the current authenticated user
+        const currentUser = auth.currentUser;
+        
+        if (!currentUser) {
+          this.logCalendarAction('No user logged in');
+          throw new GoogleCalendarError('No user logged in', 401);
+        }
+        
+        this.userId = currentUser.uid;
+      }
+      
+      // Load tokens from Firestore
+      await this.loadTokensFromFirestore();
       this.logCalendarAction('Initialized');
     } catch (error) {
       console.error('Error initializing Google Calendar service:', error);
       throw new GoogleCalendarError('Failed to initialize Google Calendar service', 500, error);
+    }
+  }
+
+  // Convenience method to initialize with a specific user ID for server-side operations
+  public async initializeForUser(userId: string): Promise<void> {
+    return this.initialize(userId);
+  }
+  
+  private async loadTokensFromFirestore(): Promise<void> {
+    if (!this.userId) {
+      throw new GoogleCalendarError('User ID not set', 401);
+    }
+    
+    try {
+      const userProfileRef = doc(db, 'userProfiles', this.userId);
+      const userProfileSnapshot = await getDoc(userProfileRef);
+      
+      if (!userProfileSnapshot.exists()) {
+        throw new GoogleCalendarError('User profile not found', 404);
+      }
+      
+      const userData = userProfileSnapshot.data();
+      
+      // Check if Google Calendar is connected
+      if (!userData.googleCalendarConnected || !userData.googleCalendar) {
+        throw new GoogleCalendarError('Google Calendar not connected', 403);
+      }
+      
+      const { accessToken, refreshToken, expiryTime } = userData.googleCalendar;
+      
+      if (!accessToken || !refreshToken) {
+        throw new GoogleCalendarError('Missing OAuth tokens', 403);
+      }
+      
+      this.accessToken = accessToken;
+      this.refreshToken = refreshToken;
+      this.tokenExpiryTime = expiryTime || 0;
+      
+      // If token is expired or close to expiry, refresh it
+      if (Date.now() >= this.tokenExpiryTime - 300000) { // 5 min buffer
+        await this.refreshAccessToken();
+      }
+    } catch (error) {
+      console.error('Error loading tokens from Firestore:', error);
+      throw error;
     }
   }
 
@@ -67,36 +138,48 @@ export class GoogleCalendarService {
       return;
     }
     
+    if (!this.refreshToken || !this.userId) {
+      throw new GoogleCalendarError('No refresh token or user ID available', 401);
+    }
+    
     try {
       this.refreshInProgress = true;
-      const currentUser = auth.currentUser;
       
-      if (!currentUser) {
-        this.logCalendarAction('No user logged in');
-        this.accessToken = null;
-        return;
+      const response = await fetch('/api/auth/google-calendar/refresh', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: this.userId,
+          refreshToken: this.refreshToken,
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Token refresh error:', errorData);
+        throw new GoogleCalendarError(
+          `Failed to refresh token: ${response.statusText}`,
+          response.status,
+          errorData
+        );
       }
-
-      // Check if user has Google Calendar access
-      const providerData = currentUser.providerData.find(
-        provider => provider.providerId === 'google.com'
-      );
       
-      if (!providerData) {
-        this.logCalendarAction('User not authenticated with Google');
-        throw new GoogleCalendarError('User not authenticated with Google', 401);
-      }
-
-      // Force token refresh to get a fresh token
-      const token = await currentUser.getIdToken(true);
+      const { accessToken, expiryTime } = await response.json();
       
-      // Set token and its expiry time (Google tokens typically last 1 hour)
-      this.accessToken = token;
-      this.tokenExpiryTime = Date.now() + 3540 * 1000; // 59 minutes (buffer of 1 min)
+      // Update tokens in memory
+      this.accessToken = accessToken;
+      this.tokenExpiryTime = expiryTime;
+      
       this.logCalendarAction('Access token refreshed');
     } catch (error) {
       console.error('Error refreshing access token:', error);
+      
+      // Clear tokens on error
       this.accessToken = null;
+      this.refreshToken = null;
+      
       throw new GoogleCalendarError('Failed to refresh access token', 401, error);
     } finally {
       this.refreshInProgress = false;
@@ -104,20 +187,26 @@ export class GoogleCalendarService {
   }
 
   public async getAccessToken(): Promise<string> {
-    // If token expired or close to expiry, refresh it
-    if (!this.accessToken || Date.now() >= this.tokenExpiryTime - 300000) { // 5 min buffer
-      await this.refreshAccessToken();
+    try {
+      // If token expired or close to expiry, refresh it
+      if (!this.accessToken || Date.now() >= this.tokenExpiryTime - 300000) { // 5 min buffer
+        await this.loadTokensFromFirestore();
+      }
+      
+      if (!this.accessToken) {
+        throw new GoogleCalendarError('Failed to get access token', 401);
+      }
+      
+      return this.accessToken;
+    } catch (error) {
+      console.error('Error getting access token:', error);
+      throw error;
     }
-    
-    if (!this.accessToken) {
-      throw new GoogleCalendarError('Failed to get access token', 401);
-    }
-    
-    return this.accessToken;
   }
 
   public async createEvent(event: CalendarEvent, calendarId: string = 'primary'): Promise<string | null> {
     try {
+      console.log('GoogleCalendarService: Creating calendar event', { summary: event.summary });
       this.logCalendarAction('Creating calendar event', { summary: event.summary });
       const token = await this.getAccessToken();
 
@@ -138,6 +227,11 @@ export class GoogleCalendarService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error('Google Calendar API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData
+        });
         throw new GoogleCalendarError(
           `Failed to create event: ${response.statusText}`, 
           response.status, 
@@ -344,6 +438,51 @@ export class GoogleCalendarService {
     } catch (error) {
       console.error('Error fetching calendar list:', error);
       throw error;
+    }
+  }
+
+  public async checkAvailabilityForUser(
+    userId: string,
+    startTime: Date,
+    endTime: Date,
+    calendarId: string = 'primary'
+  ): Promise<boolean> {
+    try {
+      this.logCalendarAction('Checking availability for user', { userId, startTime, endTime });
+      
+      // Check if the user has Google Calendar connected
+      const userProfileRef = doc(db, 'userProfiles', userId);
+      const userProfileSnapshot = await getDoc(userProfileRef);
+      
+      if (!userProfileSnapshot.exists()) {
+        this.logCalendarAction('User profile not found for availability check');
+        return true; // Default to available if no profile
+      }
+      
+      const userData = userProfileSnapshot.data();
+      
+      // If Google Calendar is not connected, return available
+      if (!userData.googleCalendarConnected || !userData.googleCalendar) {
+        this.logCalendarAction('Google Calendar not connected for user');
+        return true;
+      }
+      
+      // Initialize with the specific user ID
+      await this.initialize(userId);
+      
+      const events = await this.getEvents(
+        calendarId,
+        startTime.toISOString(),
+        endTime.toISOString()
+      );
+
+      // Check if there are any conflicting events
+      const isAvailable = events.length === 0;
+      this.logCalendarAction('Availability check completed for user', { userId, isAvailable });
+      return isAvailable;
+    } catch (error) {
+      console.error('Error checking availability for user:', error);
+      return true; // Default to available if we can't check
     }
   }
 }

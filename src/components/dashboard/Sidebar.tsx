@@ -13,6 +13,7 @@ import {
   XMarkIcon,
   UserGroupIcon,
   LinkIcon,
+  UserIcon,
 } from '@heroicons/react/24/outline';
 import { SidebarUserLinks } from './SidebarUserLinks';
 import { DashboardView } from './Dashboard';
@@ -57,11 +58,13 @@ export function Sidebar({
           <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
             <span className="text-white font-bold text-lg">S</span>
           </div>
-          <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
+          <h1 className="text-lg sm:text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
             Schedulo
           </h1>
         </div>
-        <ThemeToggle variant="dropdown" />
+        <div className="lg:block">
+          <ThemeToggle variant="dropdown" />
+        </div>
       </div>
 
       {/* Navigation */}
@@ -69,7 +72,10 @@ export function Sidebar({
         {navigation.map((item) => (
           <button
             key={item.name}
-            onClick={() => onViewChange(item.href as DashboardView)}
+            onClick={() => {
+              onViewChange(item.href as DashboardView);
+              onMobileMenuClose(); // Close mobile menu when item is selected
+            }}
             className={cn(
               'w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group',
               currentView === item.href
@@ -120,13 +126,22 @@ export function Sidebar({
             </p>
           </div>
         </div>
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all duration-200 hover:scale-[1.02] group"
-        >
-          <ArrowRightOnRectangleIcon className="mr-3 h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
-          Sign Out
-        </button>
+        <div className="space-y-2">
+          <a
+            href="/profile"
+            className="w-full flex items-center px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white rounded-xl transition-all duration-200 hover:scale-[1.02] group"
+          >
+            <UserIcon className="mr-3 h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
+            Profile Settings
+          </a>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all duration-200 hover:scale-[1.02] group"
+          >
+            <ArrowRightOnRectangleIcon className="mr-3 h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
+            Sign Out
+          </button>
+        </div>
       </div>
     </div>
   );

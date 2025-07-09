@@ -99,6 +99,129 @@ body {
   box-shadow: 0 0 0 2px rgb(var(--ring));
 }
 
+/* Mobile-specific animations and transitions */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.6s ease-out forwards;
+}
+
+/* Mobile touch improvements */
+@media (hover: none) and (pointer: coarse) {
+  /* Mobile-specific touch targets */
+  button, .button-like {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Reduce hover effects on mobile */
+  .hover\:scale-105:hover {
+    transform: none;
+  }
+  
+  .hover\:shadow-lg:hover {
+    box-shadow: none;
+  }
+}
+
+/* Mobile viewport adjustments */
+@media (max-width: 640px) {
+  /* Ensure content doesn't go off-screen */
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  /* Improve readability on small screens */
+  .text-responsive {
+    font-size: clamp(0.875rem, 4vw, 1.125rem);
+  }
+  
+  /* Better mobile spacing */
+  .mobile-spacing {
+    margin-bottom: 1rem;
+  }
+  
+  .mobile-spacing:last-child {
+    margin-bottom: 0;
+  }
+  
+  /* Mobile-specific component adjustments */
+  .mobile-card-padding {
+    padding: 1rem !important;
+  }
+  
+  .mobile-reduced-gap > * + * {
+    margin-top: 1rem !important;
+  }
+  
+  /* Mobile booking page optimizations */
+  .booking-header-content {
+    flex-direction: column !important;
+    text-align: center !important;
+  }
+  
+  .booking-header-photo {
+    margin-bottom: 1rem !important;
+  }
+  
+  .booking-header-info {
+    align-items: center !important;
+  }
+}
+
+/* Tablet adjustments */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .tablet-grid-2 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  
+  .tablet-spacing {
+    gap: 1.5rem !important;
+  }
+}
+
+/* Improved mobile scrolling */
+html {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Mobile-friendly form elements */
+input, textarea, select {
+  font-size: 16px; /* Prevents zoom on iOS */
+}
+
+@media (max-width: 640px) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}
+
 /* Custom animations */
 @keyframes fadeIn {
   0% {
@@ -295,5 +418,57 @@ select:focus {
   
   .booking-header-info {
     align-items: center;
+  }
+}
+
+/* Additional responsive utilities */
+.responsive-grid-1 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .responsive-grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .responsive-grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Safe area support for devices with notches */
+@supports (padding: max(0px)) {
+  .safe-top {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+  
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* Prevent content jumping during loading */
+.min-h-touch {
+  min-height: 44px;
+}
+
+/* Mobile-first breakpoint utilities */
+@media (max-width: 640px) {
+  .mobile-full-width {
+    width: 100vw;
+    margin-left: calc(-50vw + 50%);
+  }
+  
+  .mobile-px-4 {
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
 }

@@ -20,8 +20,17 @@ export interface UserProfile {
   publicBookingEnabled: boolean;
   bookingPageTitle: string;
   bookingPageDescription: string;
+  autoConfirmBookings?: boolean;
   googleCalendarConnected: boolean;
   googleCalendarId?: string;
+  googleCalendar?: {
+    connected: boolean;
+    accessToken: string;
+    refreshToken: string;
+    expiryTime: number;
+    scope: string;
+    connectedAt: Date;
+  };
   createdAt: Date;
   updatedAt: Date;
 }

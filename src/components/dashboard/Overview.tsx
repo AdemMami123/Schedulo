@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { BookingGuide } from './BookingGuide';
+import { AllUserLinks } from './AllUserLinks';
 import {
   CalendarDaysIcon,
   ClockIcon,
@@ -121,9 +122,10 @@ export function Overview() {
       }
 
       // Fetch all bookings for the user
+      // Use user.uid to ensure consistency with BookingHistory
       const bookingsQuery = query(
         collection(db, 'bookings'),
-        where('userId', '==', userProfile.id),
+        where('userId', '==', userProfile.id), // userProfile.id should be same as user.uid
         orderBy('createdAt', 'desc')
       );
 
@@ -346,7 +348,8 @@ export function Overview() {
         </div>
 
         {/* Loading Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Stats Grid - Mobile Responsive */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {[...Array(4)].map((_, i) => (
             <Card key={i} className="relative overflow-hidden group hover:shadow-lg transition-all duration-300 border-0 bg-white dark:bg-slate-800">
               <CardContent className="p-6 animate-pulse">
@@ -420,52 +423,63 @@ export function Overview() {
         </div>
       </div>
 
-      {/* Booking Link Section */}
+      {/* Enhanced Your Booking Link Section */}
       {userProfile?.username && (
         <Card className="border-0 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 shadow-lg">
           <CardContent className="p-6">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-                  🎯 Your Booking Page is Ready!
-                </h3>
-                <p className="text-slate-600 dark:text-slate-400 mb-3">
-                  Share this link with your clients so they can book appointments with you
-                </p>
-                <div className="flex items-center space-x-3">
-                  <div className="flex items-center space-x-2 bg-white dark:bg-slate-800 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 flex-1 max-w-md">
-                    <LinkIcon className="h-4 w-4 text-slate-400" />
-                    <code className="text-sm font-mono text-slate-700 dark:text-slate-300 truncate">
-                      {typeof window !== 'undefined' ? window.location.origin : 'https://schedulo.app'}/schedule/{userProfile.username}
-                    </code>
-                  </div>
-                  <button
-                    onClick={copyBookingLink}
-                    className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md"
-                  >
-                    {copied ? (
-                      <>
-                        <CheckCircleIcon className="h-4 w-4" />
-                        <span className="text-sm">Copied!</span>
-                      </>
-                    ) : (
-                      <>
-                        <ClipboardDocumentIcon className="h-4 w-4" />
-                        <span className="text-sm">Copy Link</span>
-                      </>
-                    )}
-                  </button>
+            <div className="flex flex-col space-y-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white">
+                  <LinkIcon className="h-6 w-6" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                    🎯 Your Booking Page is Ready!
+                  </h3>
+                  <p className="text-slate-600 dark:text-slate-400">
+                    Share this link with anyone to let them book time with you
+                  </p>
                 </div>
               </div>
-              <div className="flex items-center space-x-3">
-                <button
-                  onClick={openBookingPage}
-                  className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors shadow-md"
-                >
-                  <EyeIcon className="h-4 w-4" />
-                  <span className="text-sm">Preview</span>
-                </button>
-
+              
+              <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex items-center space-x-3 flex-1 min-w-0">
+                    <LinkIcon className="h-5 w-5 text-slate-400 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Your booking link:</p>
+                      <code className="text-sm font-mono text-slate-700 dark:text-slate-300 break-all">
+                        {typeof window !== 'undefined' ? window.location.origin : 'https://schedulo.app'}/schedule/{userProfile.username}
+                      </code>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2 flex-shrink-0">
+                    <button
+                      onClick={copyBookingLink}
+                      className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md"
+                    >
+                      {copied ? (
+                        <>
+                          <CheckCircleIcon className="h-4 w-4" />
+                          <span className="text-sm">Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <ClipboardDocumentIcon className="h-4 w-4" />
+                          <span className="text-sm">Copy Link</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={openBookingPage}
+                      className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors shadow-md"
+                    >
+                      <EyeIcon className="h-4 w-4" />
+                      <span className="text-sm">Preview</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -473,7 +487,7 @@ export function Overview() {
       )}
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <StatCard
           title="Total Bookings"
           value={stats.totalBookings}
@@ -508,7 +522,7 @@ export function Overview() {
      
 
       {/* Recent Bookings and Performance */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Recent Bookings */}
         <div className="lg:col-span-2">
           <Card className="border-0 bg-white dark:bg-slate-800">
@@ -702,6 +716,9 @@ export function Overview() {
           </Card>
         </div>
       </div>
+
+      {/* All User Booking Links */}
+      <AllUserLinks />
 
       {/* Getting Started Guide */}
       {stats.totalBookings === 0 && (
