@@ -80,7 +80,7 @@ export function BookingSettings() {
     defaultMeetingDuration: 30,
     bufferTimeBefore: 0,
     bufferTimeAfter: 0,
-    autoConfirmBookings: true,
+    autoConfirmBookings: false,
     requireGuestInfo: true,
     allowCancellation: true,
     cancellationNotice: 24, // hours
@@ -112,7 +112,7 @@ export function BookingSettings() {
           defaultMeetingDuration: profileData.defaultMeetingDuration || 30,
           bufferTimeBefore: profileData.bufferTimeBefore || 0,
           bufferTimeAfter: profileData.bufferTimeAfter || 0,
-          autoConfirmBookings: profileData.autoConfirmBookings ?? true,
+          autoConfirmBookings: profileData.autoConfirmBookings ?? false,
           requireGuestInfo: true,
           allowCancellation: true,
           cancellationNotice: 24,
