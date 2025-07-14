@@ -4,13 +4,13 @@ import { getFirestore } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBq5aYvDB8DmSNZCUoAP8hhayBRJ4G1d4g",
-  authDomain: "smart-scheduling-app-a94b1.firebaseapp.com",
-  projectId: "smart-scheduling-app-a94b1",
-  storageBucket: "smart-scheduling-app-a94b1.firebasestorage.app",
-  messagingSenderId: "292962557323",
-  appId: "1:292962557323:web:075fdebc3d1ee781b3638e",
-  measurementId: "G-QP3B69KVHV"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN!,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET!,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID!,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID!
 };
 
 // Initialize Firebase
