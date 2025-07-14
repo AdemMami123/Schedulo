@@ -281,16 +281,16 @@ export function BookingForm({ user, profile, selectedSlot, onComplete, onCancel 
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-900">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4 sm:py-6 lg:py-8">
-        <Card variant="elevated" className="p-0">
-          <CardHeader className="p-4 sm:p-6">
+        <Card className="glass-card shadow-2xl border-0 overflow-hidden">
+          <CardHeader className="p-4 sm:p-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
             <div className="flex items-start sm:items-center space-x-3 sm:space-x-4">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onCancel}
-                className="p-2 shrink-0"
+                className="p-2 shrink-0 hover:bg-white/20 text-white border-white/20"
               >
                 <ArrowLeftIcon className="h-5 w-5" />
               </Button>
@@ -299,16 +299,16 @@ export function BookingForm({ user, profile, selectedSlot, onComplete, onCancel 
                   <img
                     src={user.photoURL}
                     alt={user.displayName}
-                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-full ring-2 ring-gray-200 dark:ring-gray-600 shrink-0"
+                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-full ring-2 ring-white/30 shrink-0"
                   />
                 ) : (
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center shrink-0">
-                    <UserIcon className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400 dark:text-gray-500" />
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                    <UserIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white/80" />
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <CardTitle className="text-base sm:text-lg truncate">Book with {user.displayName}</CardTitle>
-                  <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-4 text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  <CardTitle className="text-base sm:text-lg truncate text-white">Book with {user.displayName}</CardTitle>
+                  <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-4 text-xs sm:text-sm text-white/80 mt-1">
                     <div className="flex items-center">
                       <CalendarDaysIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-1 shrink-0" />
                       <span className="truncate">{formatDateTime(selectedSlot.start)}</span>
@@ -326,10 +326,10 @@ export function BookingForm({ user, profile, selectedSlot, onComplete, onCancel 
           <CardContent className="p-4 sm:p-6">
             <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                <label htmlFor="name" className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">
                   Your Name *
                   {isAuthenticated && currentUser?.displayName && (
-                    <span className="ml-2 text-xs text-blue-600 dark:text-blue-400 font-normal">
+                    <span className="ml-2 text-xs text-indigo-600 dark:text-indigo-400 font-normal">
                       (Pre-filled from your account)
                     </span>
                   )}
@@ -345,17 +345,17 @@ export function BookingForm({ user, profile, selectedSlot, onComplete, onCancel 
                   className="text-base sm:text-sm" // Prevent zoom on iOS
                 />
                 {isAuthenticated && currentUser?.displayName && (
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                     This name is from your account but you can edit it if needed.
                   </p>
                 )}
               </div>
 
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                <label htmlFor="email" className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">
                   Email Address *
                   {isAuthenticated && currentUser?.email && (
-                    <span className="ml-2 text-xs text-green-600 dark:text-green-400 font-normal">
+                    <span className="ml-2 text-xs text-emerald-600 dark:text-emerald-400 font-normal">
                       (Auto-filled from your account)
                     </span>
                   )}
@@ -369,43 +369,43 @@ export function BookingForm({ user, profile, selectedSlot, onComplete, onCancel 
                   placeholder={isAuthenticated ? "Your email from logged-in account" : "Enter your email address"}
                   disabled={loading}
                   readOnly={isAuthenticated && !!currentUser?.email} // Make read-only if user is authenticated
-                  className={`text-base sm:text-sm ${isAuthenticated && currentUser?.email ? 'bg-gray-50 dark:bg-gray-700/50 cursor-not-allowed' : ''}`}
+                  className={`text-base sm:text-sm ${isAuthenticated && currentUser?.email ? 'bg-slate-50 dark:bg-slate-700/50 cursor-not-allowed' : ''}`}
                 />
                 {isAuthenticated && currentUser?.email && (
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                     This email is from your logged-in account and cannot be changed.
                   </p>
                 )}
                 {!isAuthenticated && (
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                     Please enter the email address where you'd like to receive booking confirmations.
                   </p>
                 )}
               </div>
 
               <div>
-                <label htmlFor="notes" className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                <label htmlFor="notes" className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">
                   Additional Notes 
-                  <span className="text-xs text-gray-500 dark:text-gray-400 font-normal ml-1">(Optional)</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-normal ml-1">(Optional)</span>
                 </label>
                 <textarea
                   id="notes"
                   value={formData.notes}
                   onChange={(e) => handleInputChange('notes', e.target.value)}
                   rows={3}
-                  className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-base sm:text-sm resize-none"
+                  className="block w-full rounded-xl border-slate-300 dark:border-slate-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-slate-700 dark:text-white text-base sm:text-sm resize-none bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm"
                   placeholder="Any additional information, agenda items, or special requests... (optional)"
                   disabled={loading}
                 />
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   Feel free to leave this blank if you don't have anything specific to add.
                 </p>
               </div>
 
-              <Card variant="bordered" className="bg-gray-50 dark:bg-gray-800/50">
+              <Card className="glass-card bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30 border-indigo-200 dark:border-indigo-700">
                 <CardContent className="p-3 sm:p-4">
-                  <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Meeting Details</h3>
-                  <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                  <h3 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">Meeting Details</h3>
+                  <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 space-y-1">
                     <p><strong>Date & Time:</strong> <span className="break-words">{formatDateTime(selectedSlot.start)}</span></p>
                     <p><strong>Duration:</strong> {selectedSlot.duration} minutes</p>
                     <p><strong>Timezone:</strong> {profile.timezone}</p>
@@ -420,14 +420,14 @@ export function BookingForm({ user, profile, selectedSlot, onComplete, onCancel 
                   variant="outline"
                   onClick={onCancel}
                   disabled={loading}
-                  className="flex-1 min-h-[44px]" // Ensure good touch target on mobile
+                  className="flex-1 min-h-[44px] border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700" // Ensure good touch target on mobile
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 min-h-[44px]" // Ensure good touch target on mobile
+                  className="flex-1 min-h-[44px] btn-modern bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700" // Ensure good touch target on mobile
                 >
                   {loading ? 'Booking...' : 'Confirm Booking'}
                 </Button>
@@ -437,8 +437,8 @@ export function BookingForm({ user, profile, selectedSlot, onComplete, onCancel 
         </Card>
 
         {/* Footer */}
-        <div className="mt-6 sm:mt-8 text-center text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-          <p>Powered by <span className="font-medium text-blue-600 dark:text-blue-400">Schedulo</span></p>
+        <div className="mt-6 sm:mt-8 text-center text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+          <p>Powered by <span className="font-medium text-indigo-600 dark:text-indigo-400">Schedulo</span></p>
         </div>
       </div>
     </div>

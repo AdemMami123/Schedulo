@@ -101,7 +101,7 @@ export function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-all duration-500">
+    <div className="min-h-screen bg-transparent">
       <div className="flex">
         <Sidebar 
           currentView={currentView} 
@@ -112,13 +112,13 @@ export function Dashboard() {
         
         <main className="flex-1 lg:ml-64">
           {/* Enhanced Top Header Bar - Mobile Responsive */}
-          <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-700/50 sticky top-0 z-20 shadow-sm">
+          <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-700/50 sticky top-0 z-20 shadow-lg">
             <div className="flex items-center justify-between px-4 sm:px-6 py-4">
               {/* Mobile menu button */}
               <div className="lg:hidden">
                 <button
                   onClick={() => setMobileMenuOpen(true)}
-                  className="inline-flex items-center justify-center p-2.5 rounded-xl text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 hover:scale-105"
+                  className="btn-modern inline-flex items-center justify-center p-2.5 rounded-2xl text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200 hover:scale-105"
                 >
                   <span className="sr-only">Open main menu</span>
                   <Bars3Icon className="h-6 w-6" />
@@ -134,11 +134,11 @@ export function Dashboard() {
 
               {/* Desktop Page Title */}
               <div className="hidden lg:flex items-center space-x-3">
-                <div className="p-2 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                <div className="p-3 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg">
                   {getViewIcon()}
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-slate-900 dark:text-white">
+                  <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
                     {getViewTitle()}
                   </h1>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -150,7 +150,7 @@ export function Dashboard() {
               {/* Right side actions */}
               <div className="flex items-center space-x-2 sm:space-x-3">
                 {/* Mobile Search Button */}
-                <button className="lg:hidden p-2 rounded-xl text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200">
+                <button className="lg:hidden p-2 rounded-2xl text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200">
                   <MagnifyingGlassIcon className="h-5 w-5" />
                 </button>
 
@@ -159,9 +159,9 @@ export function Dashboard() {
                   <input
                     type="text"
                     placeholder="Search bookings, settings..."
-                    className="w-72 pl-11 pr-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 dark:bg-slate-700/80 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-all duration-200 backdrop-blur-sm"
+                    className="input-modern w-72 pl-11 pr-4 py-3 bg-white/80 dark:bg-slate-700/80 backdrop-blur-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
                   />
-                  <MagnifyingGlassIcon className="h-5 w-5 text-slate-400 absolute left-3.5 top-3" />
+                  <MagnifyingGlassIcon className="h-5 w-5 text-slate-400 absolute left-3.5 top-3.5" />
                 </div>
 
                 {/* Enhanced Notifications */}
@@ -174,28 +174,28 @@ export function Dashboard() {
           <div className="p-4 sm:p-6 space-y-6 sm:space-y-8">
             {/* Enhanced Welcome Section - Only show on Overview page */}
             {currentView === 'overview' && (
-              <div className="relative overflow-hidden">
-                <Card className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white border-none shadow-2xl relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-indigo-600/20 backdrop-blur-3xl"></div>
-                  <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
-                  <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+              <div className="relative overflow-hidden animate-slide-up">
+                <Card className="glass-card bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 text-white border-none shadow-2xl relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/20 via-purple-600/20 to-blue-600/20 backdrop-blur-3xl"></div>
+                  <div className="absolute -top-20 -right-20 w-60 h-60 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
+                  <div className="absolute -bottom-20 -left-20 w-48 h-48 bg-white/10 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '2s' }}></div>
 
-                  <CardContent className="p-4 sm:p-6 lg:p-8 relative z-10">
-                    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between space-y-4 lg:space-y-0">
-                      <div className="space-y-3 sm:space-y-5 flex-1">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                          <span className="text-sm font-medium text-blue-100">
+                  <CardContent className="p-6 sm:p-8 lg:p-10 relative z-10">
+                    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between space-y-6 lg:space-y-0">
+                      <div className="space-y-4 sm:space-y-6 flex-1">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                          <span className="text-sm font-semibold text-blue-100 bg-white/10 px-3 py-1 rounded-full">
                             You're online
                           </span>
                         </div>
 
                         <div>
-                          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2 bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
+                          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 leading-tight">
                             Hello, {userProfile?.displayName}! 👋
                           </h2>
-                          <p className="text-blue-100 text-sm sm:text-base lg:text-lg font-medium leading-relaxed">
-                            Welcome to your personal scheduling HQ — define your availability, share your link, and let others book you effortlessly.
+                          <p className="text-blue-100 text-base sm:text-lg lg:text-xl font-medium leading-relaxed">
+                            Welcome to your professional scheduling hub — define your availability, share your link, and let others book you effortlessly.
                             <br className="hidden sm:block" />
                             <span className="block sm:inline">It's like Calendly, but smarter. 🧠</span>
                           </p>

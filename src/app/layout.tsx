@@ -7,20 +7,24 @@ import { NotificationProvider } from '@/contexts/NotificationContext';
 import { ReminderProvider } from '@/contexts/ReminderProvider';
 import { NotificationWrapper } from '@/components/ui/NotificationWrapper';
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ 
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+});
 
 export const metadata: Metadata = {
   title: 'Schedulo - Smart Scheduling Made Easy',
-  description: 'Smart scheduling application with calendar integration and availability management',
+  description: 'Professional scheduling application with calendar integration, availability management, and seamless booking experience',
   viewport: {
     width: 'device-width',
     initialScale: 1,
     maximumScale: 1,
-    userScalable: false, // Prevent zoom on form inputs
+    userScalable: false,
   },
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#1f2937' },
+    { media: '(prefers-color-scheme: light)', color: '#6366f1' },
+    { media: '(prefers-color-scheme: dark)', color: '#8b5cf6' },
   ],
   appleWebApp: {
     capable: true,
@@ -31,6 +35,12 @@ export const metadata: Metadata = {
     telephone: false,
     email: false,
     address: false,
+  },
+  openGraph: {
+    title: 'Schedulo - Smart Scheduling Made Easy',
+    description: 'Professional scheduling application with calendar integration',
+    type: 'website',
+    siteName: 'Schedulo',
   },
 };
 
@@ -75,17 +85,21 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={inter.className}>
-        <ThemeProvider>
-          <AuthProvider>
-            <NotificationProvider>
-              <ReminderProvider>
-                {children}
-                <NotificationWrapper />
-              </ReminderProvider>
-            </NotificationProvider>
-          </AuthProvider>
-        </ThemeProvider>
+      <body className={`${inter.className} ${inter.variable} font-sans antialiased`}>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-900">
+          <ThemeProvider>
+            <AuthProvider>
+              <NotificationProvider>
+                <ReminderProvider>
+                  <div className="relative">
+                    {children}
+                    <NotificationWrapper />
+                  </div>
+                </ReminderProvider>
+              </NotificationProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </div>
       </body>
     </html>
   );

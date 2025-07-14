@@ -10,16 +10,16 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
 const Card = forwardRef<HTMLDivElement, CardProps>(
   ({ className, variant = 'default', ...props }, ref) => {
     const variants = {
-      default: 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700',
-      bordered: 'bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600',
-      elevated: 'bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700',
+      default: 'bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700',
+      bordered: 'bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-2 border-slate-200 dark:border-slate-600',
+      elevated: 'bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm shadow-xl border border-slate-200 dark:border-slate-700',
     };
 
     return (
       <div
         ref={ref}
         className={cn(
-          'rounded-xl transition-all duration-200',
+          'rounded-2xl transition-all duration-300 hover:shadow-lg hover:shadow-indigo-500/10 hover:-translate-y-1',
           variants[variant],
           className
         )}
@@ -47,7 +47,7 @@ const CardTitle = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <h3
       ref={ref}
-      className={cn('text-lg font-semibold leading-none tracking-tight text-gray-900 dark:text-white', className)}
+      className={cn('text-xl font-bold leading-none tracking-tight text-slate-900 dark:text-slate-100', className)}
       {...props}
     />
   )

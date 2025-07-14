@@ -10,14 +10,19 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner />
+      <div className="min-h-screen flex items-center justify-center bg-transparent">
+        <div className="flex flex-col items-center space-y-4">
+          <LoadingSpinner size="lg" />
+          <p className="text-slate-600 dark:text-slate-400 animate-pulse">
+            Loading your dashboard...
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+    <main className="min-h-screen transition-all duration-300">
       {user ? <Dashboard /> : <LoginPage />}
     </main>
   );

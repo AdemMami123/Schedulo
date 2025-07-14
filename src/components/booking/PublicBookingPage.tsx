@@ -328,14 +328,14 @@ export function PublicBookingPage({ username }: PublicBookingPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-indigo-900/20 transition-all duration-300">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-purple-50 dark:from-slate-900 dark:via-indigo-900/20 dark:to-purple-900/20 transition-all duration-300">
       <div className="absolute top-4 right-4 z-10">
         <ThemeToggle variant="compact" />
       </div>
       
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 lg:py-12">
         {/* Enhanced Header with gradient and subtle animation - Mobile Responsive */}
-        <div className="relative overflow-hidden bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-blue-100 dark:border-blue-900/50 backdrop-blur-sm mb-6 sm:mb-8 group">
+        <div className="relative overflow-hidden bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-indigo-100 dark:border-indigo-900/50 backdrop-blur-sm mb-6 sm:mb-8 group">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-100/40 to-purple-100/40 dark:from-blue-900/20 dark:to-purple-900/20 opacity-70"></div>
           <div className="absolute -inset-1 bg-gradient-to-r from-blue-400 via-purple-400 to-blue-400 rounded-xl blur opacity-10 group-hover:opacity-20 transition duration-500"></div>
           
@@ -382,7 +382,7 @@ export function PublicBookingPage({ username }: PublicBookingPageProps) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Enhanced Date Selection - Mobile Responsive */}
           <div className="lg:col-span-1">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-blue-100 dark:border-blue-900/50 overflow-hidden backdrop-blur-sm">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-indigo-100 dark:border-indigo-900/50 overflow-hidden backdrop-blur-sm">
               <div className="p-4 sm:p-5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
                 <h3 className="text-base sm:text-lg font-semibold">Select a Date</h3>
                 <p className="text-xs sm:text-sm text-blue-100">Choose the day for your meeting</p>
@@ -454,7 +454,7 @@ export function PublicBookingPage({ username }: PublicBookingPageProps) {
 
           {/* Enhanced Time Selection - Mobile Responsive */}
           <div className="lg:col-span-2">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-purple-100 dark:border-purple-900/50 overflow-hidden backdrop-blur-sm h-full">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-purple-100 dark:border-purple-900/50 overflow-hidden backdrop-blur-sm h-full">
               <div className="p-4 sm:p-5 bg-gradient-to-r from-purple-500 to-pink-600 text-white">
                 <h3 className="text-base sm:text-lg font-semibold">
                   Available Times
@@ -510,7 +510,7 @@ export function PublicBookingPage({ username }: PublicBookingPageProps) {
 
         {/* Enhanced Footer - Mobile Responsive */}
         <div className="mt-8 sm:mt-12 text-center">
-          <div className="inline-block px-4 sm:px-6 py-2 bg-white dark:bg-gray-800 rounded-full shadow-sm">
+          <div className="inline-block px-4 sm:px-6 py-2 bg-white dark:bg-slate-800 rounded-full shadow-sm">
             <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
               Powered by <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">Schedulo</span>
             </p>
