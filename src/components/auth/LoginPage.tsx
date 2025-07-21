@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { CalendarDaysIcon, ClockIcon, UsersIcon } from '@heroicons/react/24/outline';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
@@ -34,9 +33,7 @@ export function LoginPage() {
       </div>
       
       <div className="relative z-10">
-        <div className="absolute top-6 right-6">
-          <ThemeToggle variant="dropdown" />
-        </div>
+      
         
         <div className="container-modern py-12 sm:py-16">
           {/* Hero Section */}

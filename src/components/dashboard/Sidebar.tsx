@@ -1,8 +1,8 @@
 'use client';
 
 import { Fragment } from 'react';
+
 import { useAuth } from '@/contexts/AuthContext';
-import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Dialog, Transition } from '@headlessui/react';
 import {
   HomeIcon,
@@ -20,9 +20,10 @@ import { cn } from '@/lib/utils';
 const navigation = [
   { name: 'Overview', href: 'overview', icon: HomeIcon },
   { name: 'Availability', href: 'availability', icon: ClockIcon },
+  { name: 'Groups', href: 'groups', icon: UserGroupIcon },
   { name: 'Booking Settings', href: 'booking-settings', icon: Cog6ToothIcon },
   { name: 'History', href: 'history', icon: CalendarDaysIcon },
-  { name: 'Accounts', href: 'accounts', icon: UserGroupIcon },
+  { name: 'Accounts', href: 'accounts', icon: UserIcon },
 ];
 
 interface SidebarProps {
@@ -60,9 +61,7 @@ export function Sidebar({
             Schedulo
           </h1>
         </div>
-        <div className="lg:block">
-          <ThemeToggle variant="dropdown" />
-        </div>
+        
       </div>
 
       {/* Navigation */}

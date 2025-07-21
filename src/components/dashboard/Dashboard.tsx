@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Sidebar } from './Sidebar';
 import { Overview } from './Overview';
 import { AvailabilitySettings } from './AvailabilitySettings';
+import { Groups } from './Groups';
 import { BookingSettings } from './BookingSettings';
 import { BookingHistory } from './BookingHistory';
 import { AccountsList } from '@/components/accounts/AccountsList';
@@ -23,7 +24,7 @@ import { NotificationContainer } from '@/components/ui/Notification';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useBookingStats } from '@/hooks/useBookingStats';
 
-export type DashboardView = 'overview' | 'availability' | 'booking-settings' | 'history' | 'accounts';
+export type DashboardView = 'overview' | 'availability' | 'groups' | 'booking-settings' | 'history' | 'accounts';
 
 export function Dashboard() {
   const { userProfile } = useAuth();
@@ -38,6 +39,8 @@ export function Dashboard() {
         return <Overview />;
       case 'availability':
         return <AvailabilitySettings />;
+      case 'groups':
+        return <Groups />;
       case 'booking-settings':
         return <BookingSettings />;
       case 'history':
@@ -89,6 +92,8 @@ export function Dashboard() {
         return <ChartBarIcon className="h-6 w-6" />;
       case 'availability':
         return <SparklesIcon className="h-6 w-6" />;
+      case 'groups':
+        return <UserGroupIcon className="h-6 w-6" />;
       case 'booking-settings':
         return <FireIcon className="h-6 w-6" />;
       case 'history':
