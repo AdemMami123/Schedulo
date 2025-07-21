@@ -20,7 +20,7 @@ import {
   XCircleIcon,
   EyeIcon,
   ChartBarIcon,
-  PlusIcon
+  XMarkIcon as X
 } from '@heroicons/react/24/outline';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -85,6 +85,20 @@ export default function GroupAvailability({ group, profiles, usersWithProfiles =
   const [mode, setMode] = useState<'collective' | 'round-robin'>(initialMode);
   const [availabilitySlots, setAvailabilitySlots] = useState<GroupAvailabilitySlot[]>([]);
 
+  // Enhanced booking state for group creators
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [selectedBookingSlot, setSelectedBookingSlot] = useState<CollectiveSlot | null>(null);
+  const [bookingDetails, setBookingDetails] = useState({
+    title: '',
+    description: '',
+    duration: 60,
+    location: '',
+    meetingLink: '',
+    selectedDate: null as Date | null
+  });
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [availableDates, setAvailableDates] = useState<Date[]>([]);
+
   // Get member profiles that exist in the profiles array
   const memberProfiles = useMemo(() => {
     const filtered = profiles.filter(profile =>
@@ -113,27 +127,21 @@ export default function GroupAvailability({ group, profiles, usersWithProfiles =
       // Create the booking
       const bookingId = await GroupBookingService.createGroupBooking(request);
 
-      // Send email invitations
-      const booking = {
-        id: bookingId,
-        ...request,
-        organizerId: userProfile.id,
-        startTime: request.preferredDate,
-        endTime: new Date(request.preferredDate.getTime() + request.duration * 60000),
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        status: 'pending' as any,
-        attendees: request.requiredAttendees?.map((email: string) => ({
-          email,
-          name: email.split('@')[0],
-          status: 'pending' as any
-        })) || [],
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
+      // Send email invitations using the proven email service
+      const startTime = request.preferredDate;
+      const endTime = new Date(request.preferredDate.getTime() + request.duration * 60000);
 
-      await GroupBookingService.sendGroupMeetingInvitations(
-        booking as any,
-        userProfile.displayName || userProfile.email
+      await GroupBookingService.sendGroupMeetingEmails(
+        bookingId,
+        request.title,
+        startTime,
+        endTime,
+        request.requiredAttendees || [],
+        userProfile.displayName || userProfile.email || 'Group Organizer',
+        userProfile.email || '',
+        request.description,
+        request.location,
+        request.meetingLink
       );
 
       // Show success message and return to availability view
@@ -142,6 +150,203 @@ export default function GroupAvailability({ group, profiles, usersWithProfiles =
     } catch (error) {
       console.error('Error creating booking:', error);
       alert('Failed to schedule meeting. Please try again.');
+    }
+  };
+
+  // Enhanced booking function for group creators
+  const handleSlotBooking = (slot: CollectiveSlot) => {
+    if (group.createdBy !== userProfile?.id) {
+      alert('Only the group creator can book meetings for this group.');
+      return;
+    }
+
+    setSelectedBookingSlot(slot);
+    setBookingDetails({
+      title: `${group.name} Meeting`,
+      description: '',
+      duration: 60,
+      location: '',
+      meetingLink: '',
+      selectedDate: null
+    });
+    calculateAvailableDates();
+    setShowBookingModal(true);
+  };
+
+  // Calculate available dates for the next 30 days
+  const calculateAvailableDates = () => {
+    const dates: Date[] = [];
+    const today = new Date();
+
+    for (let i = 1; i <= 30; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      dates.push(date);
+    }
+
+    setAvailableDates(dates);
+  };
+
+  // Book the meeting
+  const handleConfirmBooking = async () => {
+    console.log('🚀 BOOKING PROCESS STARTED');
+    console.log('📋 Selected slot:', selectedBookingSlot);
+    console.log('📅 Selected date:', bookingDetails.selectedDate);
+    console.log('📝 Meeting title:', bookingDetails.title);
+
+    if (!selectedBookingSlot || !bookingDetails.selectedDate || !bookingDetails.title.trim()) {
+      alert('Please fill in all required fields and select a date.');
+      return;
+    }
+
+    setBookingLoading(true);
+    try {
+      console.log('✅ Validation passed, proceeding with booking...');
+      // Create the meeting date and time
+      const [hours, minutes] = selectedBookingSlot.start.split(':').map(Number);
+      const meetingStart = new Date(bookingDetails.selectedDate);
+      meetingStart.setHours(hours, minutes, 0, 0);
+
+      const meetingEnd = new Date(meetingStart.getTime() + bookingDetails.duration * 60000);
+
+      // Create the booking request with proper undefined handling
+      const bookingRequest: GroupMeetingRequest = {
+        groupId: group.id,
+        organizerEmail: userProfile?.email || '',
+        organizerName: userProfile?.displayName || userProfile?.email || '',
+        title: bookingDetails.title.trim(),
+        preferredDate: meetingStart,
+        duration: bookingDetails.duration,
+        meetingType: 'collective',
+        requiredAttendees: group.members || [],
+        optionalAttendees: []
+      };
+
+      // Only add optional fields if they have meaningful values
+      if (bookingDetails.description && bookingDetails.description.trim()) {
+        bookingRequest.description = bookingDetails.description.trim();
+      }
+
+      if (bookingDetails.location && bookingDetails.location.trim()) {
+        bookingRequest.location = bookingDetails.location.trim();
+      }
+
+      if (bookingDetails.meetingLink && bookingDetails.meetingLink.trim()) {
+        bookingRequest.meetingLink = bookingDetails.meetingLink.trim();
+      }
+
+      // Create the booking
+      console.log('📝 Creating booking with request:', bookingRequest);
+      const bookingId = await GroupBookingService.createGroupBooking(bookingRequest);
+      console.log('✅ Booking created with ID:', bookingId);
+
+      // Create the booking object for email sending
+      const booking = {
+        id: bookingId,
+        title: bookingRequest.title,
+        description: bookingRequest.description,
+        location: bookingRequest.location,
+        meetingLink: bookingRequest.meetingLink,
+        organizerId: userProfile?.email || '',
+        organizerEmail: userProfile?.email || '',
+        organizerName: userProfile?.displayName || userProfile?.email || '',
+        startTime: meetingStart,
+        endTime: meetingEnd,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        status: 'pending' as any,
+        attendees: (group.members || []).map(email => ({
+          email,
+          name: email.split('@')[0],
+          status: 'pending' as any
+        })),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      console.log('📧 Booking object created for emails:', booking);
+
+      // Send email invitations using proven email service
+      console.log('📧 Sending email invitations using proven email service...');
+
+      try {
+        await GroupBookingService.sendGroupMeetingEmails(
+          bookingId,
+          bookingDetails.title,
+          meetingStart,
+          meetingEnd,
+          group.members || [],
+          userProfile?.displayName || userProfile?.email || 'Group Organizer',
+          userProfile?.email || '',
+          bookingDetails.description || undefined,
+          bookingDetails.location || undefined,
+          bookingDetails.meetingLink || undefined
+        );
+        console.log('✅ Group email invitations sent successfully');
+      } catch (emailError) {
+        console.error('❌ Failed to send email invitations:', emailError);
+        // Don't fail the entire booking if emails fail
+      }
+
+      // Reserve time slots on member calendars
+      console.log('Reserving calendar slots...');
+      try {
+        await reserveTimeSlotForMembers(booking, group.members || []);
+        console.log('✅ Calendar slots reserved successfully');
+      } catch (calendarError) {
+        console.error('❌ Failed to reserve calendar slots:', calendarError);
+        // Don't fail the entire booking if calendar reservation fails
+      }
+
+      alert('Meeting booked successfully! Email invitations have been sent to all group members.');
+
+      // Reset state
+      setShowBookingModal(false);
+      setSelectedBookingSlot(null);
+      setBookingDetails({
+        title: '',
+        description: '',
+        duration: 60,
+        location: '',
+        meetingLink: '',
+        selectedDate: null
+      });
+
+    } catch (error) {
+      console.error('Error booking meeting:', error);
+      alert('Failed to book meeting. Please try again.');
+    } finally {
+      setBookingLoading(false);
+    }
+  };
+
+  // Reserve time slot on member calendars
+  const reserveTimeSlotForMembers = async (booking: any, memberEmails: string[]) => {
+    try {
+      const reservationPromises = memberEmails.map(async (email) => {
+        return fetch('/api/calendar/reserve-slot', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            memberEmail: email,
+            booking: {
+              id: booking.id,
+              title: booking.title,
+              startTime: booking.startTime,
+              endTime: booking.endTime,
+              location: booking.location,
+              meetingLink: booking.meetingLink,
+              organizerEmail: booking.organizerEmail
+            }
+          }),
+        });
+      });
+
+      await Promise.all(reservationPromises);
+    } catch (error) {
+      console.error('Error reserving time slots:', error);
+      // Don't throw - meeting is already created, this is just calendar sync
     }
   };
 
@@ -513,6 +718,34 @@ export default function GroupAvailability({ group, profiles, usersWithProfiles =
         </CardContent>
       </Card>
 
+      {/* Creator Call-to-Action */}
+      {mode === 'collective' && group.createdBy === userProfile?.id && (
+        <Card className="border-0 bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                  <CalendarDaysIcon className="h-8 w-8" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold">Ready to Schedule a Meeting?</h3>
+                  <p className="text-green-100 text-sm">
+                    Click "Book Meeting" on any time slot below to schedule with your group members
+                  </p>
+                </div>
+              </div>
+              <div className="hidden md:flex items-center space-x-2 text-green-100">
+                <span className="text-sm">👥 {group.members?.length || 0} members</span>
+                <span className="text-sm">•</span>
+                <span className="text-sm">📧 Auto-invitations</span>
+                <span className="text-sm">•</span>
+                <span className="text-sm">📅 Calendar sync</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Availability Display */}
       <Card className="border-0 bg-white dark:bg-slate-800 shadow-lg">
         <CardHeader>
@@ -549,7 +782,12 @@ export default function GroupAvailability({ group, profiles, usersWithProfiles =
                   {filteredSlots.map((slot, index) => (
                     <div
                       key={index}
-                      className="p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 hover:border-purple-300 dark:hover:border-purple-500 transition-all duration-300 hover:shadow-md bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-700"
+                      className={cn(
+                        "p-5 rounded-xl border-2 transition-all duration-300 min-h-[160px] flex flex-col justify-between",
+                        mode === 'collective' && group.createdBy === userProfile?.id
+                          ? "border-green-200 dark:border-green-800 hover:border-green-400 dark:hover:border-green-600 hover:shadow-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 hover:from-green-100 hover:to-emerald-100 dark:hover:from-green-900/30 dark:hover:to-emerald-900/30"
+                          : "border-slate-200 dark:border-slate-600 hover:border-purple-300 dark:hover:border-purple-500 hover:shadow-lg bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-700"
+                      )}
                     >
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center space-x-2">
@@ -560,34 +798,50 @@ export default function GroupAvailability({ group, profiles, usersWithProfiles =
                         </div>
                       </div>
 
-                      {mode === 'collective' ? (
-                        <div className="space-y-2">
-                          <div className={cn(
-                            'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border',
-                            getAvailabilityColor((slot as CollectiveSlot).availableMembers.length, (slot as CollectiveSlot).totalMembers)
-                          )}>
-                            {(slot as CollectiveSlot).availableMembers.length}/{(slot as CollectiveSlot).totalMembers} available
-                          </div>
-                          <div className="text-sm text-slate-600 dark:text-slate-400">
-                            {(slot as CollectiveSlot).availableMembers.length === (slot as CollectiveSlot).totalMembers
-                              ? 'All members available'
-                              : `${(slot as CollectiveSlot).availableMembers.length} of ${(slot as CollectiveSlot).totalMembers} members`
-                            }
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-semibold">
-                              {(slot as RoundRobinSlot).assignedMember.charAt(0).toUpperCase()}
+                      <div className="flex-1">
+                        {mode === 'collective' ? (
+                          <div className="space-y-3">
+                            <div className={cn(
+                              'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border',
+                              getAvailabilityColor((slot as CollectiveSlot).availableMembers.length, (slot as CollectiveSlot).totalMembers)
+                            )}>
+                              {(slot as CollectiveSlot).availableMembers.length}/{(slot as CollectiveSlot).totalMembers} available
                             </div>
-                            <span className="text-sm text-slate-600 dark:text-slate-400">
-                              {(slot as RoundRobinSlot).assignedMember.includes('@')
-                                ? (slot as RoundRobinSlot).assignedMember.split('@')[0]
-                                : `Member ${(slot as RoundRobinSlot).assignedMember.slice(-4)}`
+                            <div className="text-sm text-slate-600 dark:text-slate-400">
+                              {(slot as CollectiveSlot).availableMembers.length === (slot as CollectiveSlot).totalMembers
+                                ? 'All members available'
+                                : `${(slot as CollectiveSlot).availableMembers.length} of ${(slot as CollectiveSlot).totalMembers} members`
                               }
-                            </span>
+                            </div>
                           </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-semibold">
+                                {(slot as RoundRobinSlot).assignedMember.charAt(0).toUpperCase()}
+                              </div>
+                              <span className="text-sm text-slate-600 dark:text-slate-400">
+                                {(slot as RoundRobinSlot).assignedMember.includes('@')
+                                  ? (slot as RoundRobinSlot).assignedMember.split('@')[0]
+                                  : `Member ${(slot as RoundRobinSlot).assignedMember.slice(-4)}`
+                                }
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Book Meeting Button for Grid View */}
+                      {mode === 'collective' && group.createdBy === userProfile?.id && (
+                        <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-600">
+                          <Button
+                            size="sm"
+                            onClick={() => handleSlotBooking(slot as CollectiveSlot)}
+                            className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold text-sm py-2.5 rounded-lg shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 border-0 flex items-center justify-center space-x-2"
+                          >
+                            <CalendarDaysIcon className="h-4 w-4" />
+                            <span>Book Meeting</span>
+                          </Button>
                         </div>
                       )}
                     </div>
@@ -598,7 +852,12 @@ export default function GroupAvailability({ group, profiles, usersWithProfiles =
                   {filteredSlots.map((slot, index) => (
                     <div
                       key={index}
-                      className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                      className={cn(
+                        "flex items-center justify-between p-5 rounded-xl transition-all duration-300 min-h-[80px]",
+                        mode === 'collective' && group.createdBy === userProfile?.id
+                          ? "bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900/30 hover:shadow-lg hover:border-green-400 dark:hover:border-green-600"
+                          : "bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 hover:shadow-md"
+                      )}
                     >
                       <div className="flex items-center space-x-4">
                         <div className="flex items-center space-x-2">
@@ -609,17 +868,18 @@ export default function GroupAvailability({ group, profiles, usersWithProfiles =
                         </div>
                       </div>
 
-                      <div className="flex items-center space-x-3">
-                        {mode === 'collective' ? (
-                          <>
-                            <div className={cn(
-                              'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border',
-                              getAvailabilityColor((slot as CollectiveSlot).availableMembers.length, (slot as CollectiveSlot).totalMembers)
-                            )}>
-                              {(slot as CollectiveSlot).availableMembers.length}/{(slot as CollectiveSlot).totalMembers}
-                            </div>
-                          </>
-                        ) : (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          {mode === 'collective' ? (
+                            <>
+                              <div className={cn(
+                                'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border',
+                                getAvailabilityColor((slot as CollectiveSlot).availableMembers.length, (slot as CollectiveSlot).totalMembers)
+                              )}>
+                                {(slot as CollectiveSlot).availableMembers.length}/{(slot as CollectiveSlot).totalMembers}
+                              </div>
+                            </>
+                          ) : (
                           <div className="flex items-center space-x-2">
                             <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-semibold">
                               {(slot as RoundRobinSlot).assignedMember.charAt(0).toUpperCase()}
@@ -631,6 +891,25 @@ export default function GroupAvailability({ group, profiles, usersWithProfiles =
                               }
                             </span>
                           </div>
+                        )}
+                        </div>
+
+                        {/* Book Meeting Button for Group Creators */}
+                        {mode === 'collective' && (
+                          group.createdBy === userProfile?.id ? (
+                            <Button
+                              size="sm"
+                              onClick={() => handleSlotBooking(slot as CollectiveSlot)}
+                              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold text-sm px-4 py-2 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 border-0 min-w-[120px] flex items-center justify-center space-x-2"
+                            >
+                              <CalendarDaysIcon className="h-4 w-4" />
+                              <span>Book Meeting</span>
+                            </Button>
+                          ) : (
+                            <div className="text-xs text-slate-500 dark:text-slate-400 italic min-w-[120px] text-center">
+                              Only creator can book
+                            </div>
+                          )
                         )}
                       </div>
                     </div>
@@ -678,6 +957,171 @@ export default function GroupAvailability({ group, profiles, usersWithProfiles =
           </div>
         </CardContent>
       </Card>
+
+      {/* Booking Modal */}
+      {showBookingModal && selectedBookingSlot && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-2xl shadow-2xl border-0 max-h-[90vh] overflow-y-auto">
+            <CardHeader className="bg-gradient-to-r from-green-600 to-emerald-700 text-white rounded-t-xl">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xl font-bold">Book Meeting</CardTitle>
+                <button
+                  onClick={() => setShowBookingModal(false)}
+                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="space-y-6">
+                {/* Selected Time Slot Info */}
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                  <h3 className="font-semibold text-green-800 dark:text-green-200 mb-2">
+                    Selected Time Slot
+                  </h3>
+                  <div className="flex items-center space-x-4 text-sm text-green-700 dark:text-green-300">
+                    <span>📅 {DAY_LABELS[selectedBookingSlot.day]}</span>
+                    <span>🕐 {formatTime(selectedBookingSlot.start)} - {formatTime(selectedBookingSlot.end)}</span>
+                    <span>👥 {selectedBookingSlot.availableMembers.length}/{selectedBookingSlot.totalMembers} members available</span>
+                  </div>
+                </div>
+
+                {/* Meeting Details Form */}
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Meeting Title *
+                    </label>
+                    <input
+                      type="text"
+                      value={bookingDetails.title}
+                      onChange={(e) => setBookingDetails(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="e.g., Team Planning Meeting"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Description
+                    </label>
+                    <textarea
+                      value={bookingDetails.description}
+                      onChange={(e) => setBookingDetails(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Brief description of the meeting..."
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Duration
+                      </label>
+                      <select
+                        value={bookingDetails.duration}
+                        onChange={(e) => setBookingDetails(prev => ({ ...prev, duration: parseInt(e.target.value) }))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      >
+                        <option value={30}>30 minutes</option>
+                        <option value={60}>1 hour</option>
+                        <option value={90}>1.5 hours</option>
+                        <option value={120}>2 hours</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Date *
+                      </label>
+                      <select
+                        value={bookingDetails.selectedDate ? bookingDetails.selectedDate.toISOString().split('T')[0] : ''}
+                        onChange={(e) => setBookingDetails(prev => ({
+                          ...prev,
+                          selectedDate: e.target.value ? new Date(e.target.value) : null
+                        }))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      >
+                        <option value="">Select a date</option>
+                        {availableDates
+                          .filter(date => {
+                            const dayName = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase() as keyof WeeklyAvailability;
+                            return dayName === selectedBookingSlot.day;
+                          })
+                          .map(date => (
+                            <option key={date.toISOString()} value={date.toISOString().split('T')[0]}>
+                              {date.toLocaleDateString('en-US', {
+                                weekday: 'long',
+                                month: 'short',
+                                day: 'numeric'
+                              })}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Location (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={bookingDetails.location}
+                      onChange={(e) => setBookingDetails(prev => ({ ...prev, location: e.target.value }))}
+                      placeholder="e.g., Conference Room A or Online"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Meeting Link (Optional)
+                    </label>
+                    <input
+                      type="url"
+                      value={bookingDetails.meetingLink}
+                      onChange={(e) => setBookingDetails(prev => ({ ...prev, meetingLink: e.target.value }))}
+                      placeholder="e.g., https://zoom.us/j/123456789"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center justify-between pt-6 border-t border-slate-200 dark:border-slate-600">
+                  <div>
+                    <h4 className="font-medium text-slate-900 dark:text-white">
+                      Ready to book this meeting?
+                    </h4>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      All group members will receive email invitations and calendar reservations
+                    </p>
+                  </div>
+                  <div className="flex gap-3">
+                    <Button
+                      variant="ghost"
+                      onClick={() => setShowBookingModal(false)}
+                      disabled={bookingLoading}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleConfirmBooking}
+                      disabled={bookingLoading || !bookingDetails.title.trim() || !bookingDetails.selectedDate}
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      {bookingLoading ? 'Booking...' : 'Book Meeting'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

@@ -6,11 +6,9 @@ import {
   GroupBookingStatus,
   AttendeeStatus,
   GroupAvailabilitySlot,
-  MeetingInvitation,
   DayOfWeek
 } from '@/types/groupBooking';
 import { UserWithProfile } from '@/lib/userLookup';
-import { WeeklyAvailability } from '@/types/index';
 
 // Fallback UUID generator
 const generateUUID = (): string => {
@@ -21,11 +19,129 @@ const generateUUID = (): string => {
   });
 };
 
+// Utility function to clean data for Firestore (removes undefined values)
+const cleanDataForFirestore = (data: any): any => {
+  if (data === undefined || data === null) {
+    return {};
+  }
+
+  const cleaned: any = {};
+
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined && value !== null) {
+      // For strings, also check if they're not just whitespace
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (trimmed.length > 0) {
+          cleaned[key] = trimmed;
+        }
+      } else if (Array.isArray(value)) {
+        // Handle arrays - recursively clean each item and filter out undefined/null values
+        const cleanedArray = value
+          .map(item => {
+            if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
+              return cleanDataForFirestore(item);
+            }
+            return item;
+          })
+          .filter(item => item !== undefined && item !== null &&
+                         (typeof item !== 'object' || Object.keys(item).length > 0));
+
+        if (cleanedArray.length > 0) {
+          cleaned[key] = cleanedArray;
+        }
+      } else if (typeof value === 'object' && value.constructor === Object) {
+        // Handle nested objects recursively
+        const cleanedObject = cleanDataForFirestore(value);
+        if (Object.keys(cleanedObject).length > 0) {
+          cleaned[key] = cleanedObject;
+        }
+      } else {
+        // For other types (numbers, booleans, dates, etc.)
+        cleaned[key] = value;
+      }
+    }
+  }
+
+  return cleaned;
+};
+
 export class GroupBookingService {
-  
+
   /**
-   * Create a group meeting booking
+   * Send group meeting emails using the proven simple booking email service
    */
+  static async sendGroupMeetingEmails(
+    bookingId: string,
+    title: string,
+    startTime: Date,
+    endTime: Date,
+    attendeeEmails: string[],
+    organizerName: string,
+    organizerEmail: string,
+    description?: string,
+    location?: string,
+    meetingLink?: string
+  ): Promise<void> {
+    console.log('📧 GROUP EMAIL SENDING STARTED (using simple booking service)');
+    console.log('📋 Parameters:', { bookingId, title, attendeeEmails, organizerName });
+
+    try {
+      const emailPromises = attendeeEmails.map(async (email, index) => {
+        console.log(`📤 Sending group email ${index + 1}/${attendeeEmails.length} to: ${email}`);
+
+        // Use the same API endpoint as simple bookings for consistency
+        const response = await fetch('/api/email/group-invitation', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            organizer: {
+              name: organizerName,
+              email: organizerEmail
+            },
+            attendee: {
+              name: email.split('@')[0],
+              email: email
+            },
+            meeting: {
+              id: bookingId,
+              title: title,
+              description: description || '',
+              startTime: startTime.toISOString(),
+              endTime: endTime.toISOString(),
+              location: location || '',
+              meetingLink: meetingLink || '',
+              duration: Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60))
+            }
+          }),
+        });
+
+        console.log(`📡 Group email API response for ${email}: ${response.status}`);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`❌ Group email failed for ${email}:`, errorText);
+          throw new Error(`Failed to send email to ${email}: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log(`✅ Group email sent successfully to ${email}:`, result);
+        return result;
+      });
+
+      await Promise.all(emailPromises);
+      console.log('🎉 ALL GROUP EMAILS SENT SUCCESSFULLY');
+    } catch (error) {
+      console.error('❌ Group email sending failed:', error);
+      throw error;
+    }
+  }
+
+
+
+
   static async createGroupBooking(request: GroupMeetingRequest): Promise<string> {
     try {
       // Validate request
@@ -40,27 +156,29 @@ export class GroupBookingService {
       // Calculate end time based on duration
       const endTime = new Date(request.preferredDate.getTime() + request.duration * 60000);
       
-      // Create attendees list
+      // Create attendees list without undefined values
       const attendees = [
         ...request.requiredAttendees?.map(email => ({
           email,
           name: email.split('@')[0], // Default name from email
-          status: AttendeeStatus.PENDING,
-          notes: undefined
+          status: AttendeeStatus.PENDING
+          // notes field omitted - will be added only when there are actual notes
         })) || [],
         ...request.optionalAttendees?.map(email => ({
           email,
           name: email.split('@')[0],
-          status: AttendeeStatus.PENDING,
-          notes: undefined
+          status: AttendeeStatus.PENDING
+          // notes field omitted - will be added only when there are actual notes
         })) || []
       ];
 
-      const bookingData: Omit<GroupBooking, 'id'> = {
+      // Create booking data with only defined values
+      const bookingData: any = {
         groupId: request.groupId,
-        organizerId: '', // Will be set by the calling component
-        title: request.title,
-        description: request.description,
+        organizerId: request.organizerEmail || '', // Use organizer email as fallback
+        organizerEmail: request.organizerEmail,
+        organizerName: request.organizerName,
+        title: request.title.trim(),
         startTime: request.preferredDate,
         endTime,
         duration: request.duration,
@@ -68,22 +186,82 @@ export class GroupBookingService {
         status: GroupBookingStatus.PENDING,
         attendees,
         meetingType: request.meetingType,
-        location: request.location,
-        meetingLink: request.meetingLink,
-        agenda: request.agenda,
         createdAt: new Date(),
         updatedAt: new Date()
       };
 
-      // Add to Firestore
-      const docRef = await addDoc(collection(db, 'groupBookings'), {
+      // Only add optional fields if they have meaningful values
+      if (request.description && request.description.trim()) {
+        bookingData.description = request.description.trim();
+      }
+
+      if (request.location && request.location.trim()) {
+        bookingData.location = request.location.trim();
+      }
+
+      if (request.meetingLink && request.meetingLink.trim()) {
+        bookingData.meetingLink = request.meetingLink.trim();
+      }
+
+      if (request.agenda && request.agenda.trim()) {
+        bookingData.agenda = request.agenda.trim();
+      }
+
+      // Clean data and add to Firestore
+      const rawData = {
         ...bookingData,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
-      });
+      };
+
+      console.log('Raw booking data before cleaning:', rawData);
+
+      const dataToSave = cleanDataForFirestore(rawData);
+
+      console.log('Cleaned booking data:', dataToSave);
+
+      // Deep validation for any undefined values
+      const validateNoUndefined = (obj: any, path: string = ''): boolean => {
+        for (const [key, value] of Object.entries(obj)) {
+          const currentPath = path ? `${path}.${key}` : key;
+
+          if (value === undefined) {
+            console.error(`Found undefined value at path: ${currentPath}`);
+            return false;
+          }
+
+          if (Array.isArray(value)) {
+            for (let i = 0; i < value.length; i++) {
+              if (value[i] === undefined) {
+                console.error(`Found undefined value in array at path: ${currentPath}[${i}]`);
+                return false;
+              }
+              if (typeof value[i] === 'object' && value[i] !== null) {
+                if (!validateNoUndefined(value[i], `${currentPath}[${i}]`)) {
+                  return false;
+                }
+              }
+            }
+          } else if (typeof value === 'object' && value !== null && value.constructor === Object) {
+            if (!validateNoUndefined(value, currentPath)) {
+              return false;
+            }
+          }
+        }
+        return true;
+      };
+
+      if (!validateNoUndefined(dataToSave)) {
+        console.error('Complete data object:', JSON.stringify(dataToSave, null, 2));
+        throw new Error('Data still contains undefined values after cleaning');
+      }
+
+      const docRef = await addDoc(collection(db, 'groupBookings'), dataToSave);
 
       // Create meeting invitations
+      console.log('🎫 Creating meeting invitations...');
       await this.createMeetingInvitations(docRef.id, attendees.map(a => a.email));
+      console.log('✅ Meeting invitations created successfully');
 
       return docRef.id;
     } catch (error) {
@@ -97,7 +275,11 @@ export class GroupBookingService {
    */
   static async createMeetingInvitations(bookingId: string, attendeeEmails: string[]): Promise<void> {
     try {
+      console.log(`🎫 Creating invitations for booking ${bookingId}`);
+      console.log(`📧 Attendee emails:`, attendeeEmails);
+
       if (!bookingId || !attendeeEmails || attendeeEmails.length === 0) {
+        console.error('❌ Invalid booking ID or attendee emails');
         throw new Error('Invalid booking ID or attendee emails');
       }
 
@@ -118,12 +300,15 @@ export class GroupBookingService {
         createdAt: serverTimestamp()
       }));
 
-      // Add all invitations to Firestore
-      const batch = invitations.map(invitation => 
-        addDoc(collection(db, 'meetingInvitations'), invitation)
-      );
+      // Add all invitations to Firestore with cleaned data
+      console.log(`💾 Saving ${invitations.length} invitations to Firestore...`);
+      const batch = invitations.map((invitation, index) => {
+        console.log(`💾 Saving invitation ${index + 1}: ${invitation.attendeeEmail}`);
+        return addDoc(collection(db, 'meetingInvitations'), cleanDataForFirestore(invitation));
+      });
 
       await Promise.all(batch);
+      console.log('✅ All invitations saved successfully');
     } catch (error) {
       console.error('Error creating meeting invitations:', error);
       throw error;
@@ -232,58 +417,7 @@ export class GroupBookingService {
     return slots.sort((a, b) => a.start.getTime() - b.start.getTime());
   }
 
-  /**
-   * Send group meeting invitations via email
-   */
-  static async sendGroupMeetingInvitations(
-    booking: GroupBooking,
-    organizerName: string
-  ): Promise<void> {
-    try {
-      if (!booking || !booking.attendees || booking.attendees.length === 0) {
-        throw new Error('Invalid booking or no attendees');
-      }
 
-      if (!organizerName) {
-        throw new Error('Organizer name is required');
-      }
-
-      const emailPromises = booking.attendees.map(async (attendee) => {
-        // Get invitation token
-        const invitationsQuery = query(
-          collection(db, 'meetingInvitations'),
-          where('bookingId', '==', booking.id),
-          where('attendeeEmail', '==', attendee.email)
-        );
-        
-        const invitationsSnapshot = await getDocs(invitationsQuery);
-        let invitationToken = '';
-        
-        if (!invitationsSnapshot.empty) {
-          invitationToken = invitationsSnapshot.docs[0].data().token;
-        }
-
-        // Send email via API
-        return fetch('/api/email/group-meeting-invitation', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            booking,
-            attendee,
-            organizerName,
-            invitationToken
-          }),
-        });
-      });
-
-      await Promise.all(emailPromises);
-    } catch (error) {
-      console.error('Error sending group meeting invitations:', error);
-      throw error;
-    }
-  }
 
   /**
    * Update attendee response
