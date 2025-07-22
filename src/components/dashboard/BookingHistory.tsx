@@ -452,16 +452,18 @@ export function BookingHistory() {
           let profileData = userProfile;
           
           // If userProfile is not available or googleCalendarConnected is not set, fetch it
+          // IMPORTANT: Use the booking's userId (host ID) not the current user's ID
+          const hostUserId = bookingToUpdate.userId;
           if (!profileData) {
             try {
-              const profileDoc = await getDoc(doc(db, 'userProfiles', user?.uid || ''));
+              const profileDoc = await getDoc(doc(db, 'userProfiles', hostUserId));
               if (profileDoc.exists()) {
                 const data = profileDoc.data();
                 profileData = data as any;
-                console.log('Fetched profile data:', profileData);
+                console.log('Fetched profile data for host:', profileData);
               }
             } catch (error) {
-              console.error("Error fetching user profile:", error);
+              console.error("Error fetching host profile:", error);
             }
           }
           
@@ -482,20 +484,20 @@ export function BookingHistory() {
           });
           
           if (!hasGoogleCalendar) {
-            console.warn('User does not have Google Calendar connected, skipping event creation');
+            console.warn('Host does not have Google Calendar connected, skipping event creation');
             addNotification({
               type: 'warning',
               title: 'Calendar Not Connected',
-              message: 'Google Calendar is not connected. The booking has been confirmed, but no calendar event was created. Connect Google Calendar in Settings.',
-              duration: 5000,
+              message: 'Google Calendar is not connected. The booking has been confirmed, but no calendar event was created. Connect Google Calendar in Settings to automatically create calendar events.',
+              duration: 8000,
               persistent: true,
             });
           } else {
             console.log('Creating Google Calendar event for confirmed booking');
-            console.log('Initializing Google Calendar service with user ID:', user?.uid);
-            
-            // Initialize Google Calendar service with the current user ID
-            await googleCalendarService.initializeForUser(user?.uid || '');
+            console.log('Initializing Google Calendar service with host user ID:', hostUserId);
+
+            // Initialize Google Calendar service with the HOST's user ID (calendar owner)
+            await googleCalendarService.initializeForUser(hostUserId);
             
             // Create calendar event
             const calendarEvent = {
@@ -516,8 +518,8 @@ export function BookingHistory() {
                 },
                 // Also add the host to the event
                 {
-                  email: user?.email || '',
-                  displayName: user?.displayName || '',
+                  email: userProfile?.email || user?.email || '',
+                  displayName: userProfile?.displayName || user?.displayName || '',
                 }
               ],
               // Add a reminder notification
@@ -535,28 +537,63 @@ export function BookingHistory() {
               console.log('Google Calendar event created:', eventId);
               // Store the Google Calendar event ID in the booking
               updates.googleCalendarEventId = eventId;
+
+              // Show success notification
+              addNotification({
+                type: 'success',
+                title: 'Calendar Event Created',
+                message: 'The meeting has been added to your Google Calendar.',
+                duration: 4000,
+              });
+            } else {
+              console.warn('Calendar event creation returned no event ID');
+              addNotification({
+                type: 'warning',
+                title: 'Calendar Event Issue',
+                message: 'Booking confirmed but calendar event creation may have failed.',
+                duration: 5000,
+              });
             }
           }
         } catch (calendarError) {
           console.error('Error creating Google Calendar event:', calendarError);
+
+          // Provide more specific error messages based on the error type
+          let errorMessage = 'Booking was confirmed but could not be added to your Google Calendar.';
+          let errorTitle = 'Calendar Event Failed';
+
+          if (calendarError instanceof Error) {
+            if (calendarError.message.includes('unauthorized') || calendarError.message.includes('401')) {
+              errorMessage = 'Google Calendar access token has expired. Please reconnect Google Calendar in Settings and try again.';
+              errorTitle = 'Calendar Access Expired';
+            } else if (calendarError.message.includes('forbidden') || calendarError.message.includes('403')) {
+              errorMessage = 'Insufficient permissions to create calendar events. Please check your Google Calendar permissions.';
+              errorTitle = 'Calendar Permission Error';
+            } else if (calendarError.message.includes('network') || calendarError.message.includes('fetch')) {
+              errorMessage = 'Network error while creating calendar event. Please check your internet connection and try again.';
+              errorTitle = 'Network Error';
+            }
+          }
+
           // Continue with booking confirmation even if calendar creation fails
           addNotification({
             type: 'warning',
-            title: 'Calendar Event Failed',
-            message: 'Booking was confirmed but could not be added to your Google Calendar.',
-            duration: 5000,
+            title: errorTitle,
+            message: errorMessage,
+            duration: 8000,
             persistent: true,
           });
         }
       }
       
       // If canceling and there's a Google Calendar event, delete it
-      if (newStatus === BookingStatus.CANCELLED && 
+      if (newStatus === BookingStatus.CANCELLED &&
           bookingToUpdate.googleCalendarEventId) {
         try {
-          // Initialize Google Calendar service with the current user ID
-          await googleCalendarService.initializeForUser(user?.uid || '');
-          
+          // Initialize Google Calendar service with the HOST's user ID (calendar owner)
+          const hostUserId = bookingToUpdate.userId;
+          await googleCalendarService.initializeForUser(hostUserId);
+
           // Delete the calendar event
           const deleted = await googleCalendarService.deleteEvent(bookingToUpdate.googleCalendarEventId);
           if (deleted) {
@@ -573,11 +610,22 @@ export function BookingHistory() {
           }
         } catch (calendarError) {
           console.error('Error deleting Google Calendar event:', calendarError);
+
+          // Provide more specific error messages
+          let errorMessage = 'Could not delete the event from Google Calendar.';
+          if (calendarError instanceof Error) {
+            if (calendarError.message.includes('unauthorized') || calendarError.message.includes('401')) {
+              errorMessage = 'Google Calendar access expired. The booking was cancelled but the calendar event may still exist.';
+            } else if (calendarError.message.includes('not found') || calendarError.message.includes('404')) {
+              errorMessage = 'Calendar event was already deleted or not found.';
+            }
+          }
+
           addNotification({
-            type: 'error',
-            title: 'Calendar Error',
-            message: 'Could not delete the event from Google Calendar.',
-            duration: 5000,
+            type: 'warning',
+            title: 'Calendar Event Deletion Failed',
+            message: errorMessage,
+            duration: 6000,
             persistent: true,
           });
         }

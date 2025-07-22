@@ -195,10 +195,13 @@ export function BookingForm({ user, profile, selectedSlot, onComplete, onCancel 
             console.log('Google Calendar event created:', eventId);
             // Update the booking with the calendar event ID
             await updateDoc(bookingRef, { googleCalendarEventId: eventId });
+          } else {
+            console.warn('Calendar event creation returned no event ID');
           }
         } catch (calendarError) {
           console.error('Error creating Google Calendar event:', calendarError);
-          // Don't fail the booking if calendar creation fails
+          // Don't fail the booking if calendar creation fails - this is auto-confirm scenario
+          // The user will be notified via email that the booking is confirmed
         }
       }
 
