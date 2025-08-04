@@ -12,6 +12,7 @@ import {
   XMarkIcon,
   UserIcon,
   UserGroupIcon,
+  ChartBarIcon,
 } from '@heroicons/react/24/outline';
 import { DashboardView } from './Dashboard';
 import { cn } from '@/lib/utils';
@@ -24,6 +25,8 @@ const navigation = [
   { name: 'Booking Settings', href: 'booking-settings', icon: Cog6ToothIcon },
   { name: 'History', href: 'history', icon: CalendarDaysIcon },
   { name: 'Accounts', href: 'accounts', icon: UserIcon },
+    { name: 'Statistics', href: 'statistics', icon: ChartBarIcon },
+
 ];
 
 interface SidebarProps {

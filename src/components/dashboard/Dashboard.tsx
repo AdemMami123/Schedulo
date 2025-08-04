@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Sidebar } from './Sidebar';
 import { Overview } from './Overview';
 import { Calendar } from './Calendar';
+import { Statistics } from './Statistics';
 
 import { AvailabilitySettings } from './AvailabilitySettings';
 import { Groups } from './Groups';
@@ -28,7 +29,7 @@ import { NotificationContainer } from '@/components/ui/Notification';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useBookingStats } from '@/hooks/useBookingStats';
 
-export type DashboardView = 'overview' | 'calendar' | 'availability' | 'groups' | 'booking-settings' | 'history' | 'accounts';
+export type DashboardView = 'overview' | 'calendar' | 'statistics' | 'availability' | 'groups' | 'booking-settings' | 'history' | 'accounts';
 
 export function Dashboard() {
   const { userProfile } = useAuth();
@@ -43,7 +44,8 @@ export function Dashboard() {
         return <Overview />;
       case 'calendar':
         return <Calendar />;
-
+      case 'statistics':
+        return <Statistics />;
       case 'availability':
         return <AvailabilitySettings />;
       case 'groups':
@@ -65,7 +67,8 @@ export function Dashboard() {
         return 'Dashboard Overview';
       case 'calendar':
         return 'Calendar View';
-
+      case 'statistics':
+        return 'Statistics & Analytics';
       case 'availability':
         return 'Availability Settings';
       case 'booking-settings':
@@ -85,6 +88,8 @@ export function Dashboard() {
         return 'Monitor your schedule performance and booking insights';
       case 'calendar':
         return 'View all your meetings with interactive calendar and detailed meeting information';
+      case 'statistics':
+        return 'Comprehensive analytics and insights for your booking performance';
       case 'availability':
         return 'Set your weekly availability and working hours';
       case 'booking-settings':
@@ -104,7 +109,8 @@ export function Dashboard() {
         return <ChartBarIcon className="h-6 w-6" />;
       case 'calendar':
         return <CalendarDaysIcon className="h-6 w-6" />;
-
+      case 'statistics':
+        return <ChartBarIcon className="h-6 w-6" />;
       case 'availability':
         return <SparklesIcon className="h-6 w-6" />;
       case 'groups':
