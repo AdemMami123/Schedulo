@@ -9,7 +9,6 @@ import {
   CalendarDaysIcon,
   Cog6ToothIcon,
   ClockIcon,
-  ArrowRightOnRectangleIcon,
   XMarkIcon,
   UserIcon,
   UserGroupIcon,
@@ -19,6 +18,7 @@ import { cn } from '@/lib/utils';
 
 const navigation = [
   { name: 'Overview', href: 'overview', icon: HomeIcon },
+  { name: 'Calendar', href: 'calendar', icon: CalendarDaysIcon },
   { name: 'Availability', href: 'availability', icon: ClockIcon },
   { name: 'Groups', href: 'groups', icon: UserGroupIcon },
   { name: 'Booking Settings', href: 'booking-settings', icon: Cog6ToothIcon },
@@ -39,15 +39,7 @@ export function Sidebar({
   mobileMenuOpen = false, 
   onMobileMenuClose = () => {} 
 }: SidebarProps) {
-  const { userProfile, logout } = useAuth();
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
+  const { userProfile } = useAuth();
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -65,7 +57,7 @@ export function Sidebar({
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-6 py-8 space-y-3">
+      <nav className="flex-1 px-6 py-8 space-y-3 flex flex-col justify-start">
         {navigation.map((item) => (
           <button
             key={item.name}
@@ -88,47 +80,6 @@ export function Sidebar({
           </button>
         ))}
       </nav>
-
-      {/* Enhanced User Profile */}
-      <div className="p-6 border-t border-slate-200/50 dark:border-slate-700/50">
-        <div className="flex items-center space-x-4 mb-6 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50">
-          {userProfile?.photoURL ? (
-            <img
-              src={userProfile.photoURL}
-              alt={userProfile.displayName}
-              className="w-12 h-12 rounded-2xl ring-2 ring-indigo-200 dark:ring-indigo-800"
-            />
-          ) : (
-            <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-white font-semibold shadow-lg">
-              {userProfile?.displayName?.charAt(0) || 'U'}
-            </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-              {userProfile?.displayName}
-            </p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-              {userProfile?.email}
-            </p>
-          </div>
-        </div>
-        <div className="space-y-3">
-          <a
-            href="/profile"
-            className="w-full flex items-center px-5 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white rounded-2xl transition-all duration-300 hover:scale-[1.02] group"
-          >
-            <UserIcon className="mr-4 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
-            Profile Settings
-          </a>
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center px-5 py-3 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-2xl transition-all duration-300 hover:scale-[1.02] group"
-          >
-            <ArrowRightOnRectangleIcon className="mr-4 h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
-            Sign Out
-          </button>
-        </div>
-      </div>
     </div>
   );
 

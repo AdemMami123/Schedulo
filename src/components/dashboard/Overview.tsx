@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { collection, query, where, getDocs, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Booking, BookingStatus } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { useEnhancedBookingStats } from '@/hooks/useEnhancedBookingStats';
 import { BookingGuide } from './BookingGuide';
 import { AllUserLinks } from './AllUserLinks';
 import {
@@ -75,57 +76,56 @@ interface BookingWithDetails extends Booking {
 export function Overview() {
   const { userProfile } = useAuth();
   const { addNotification } = useNotifications();
-  const [selectedPeriod, setSelectedPeriod] = useState('week');
-  const [stats, setStats] = useState<DashboardStats>({
+  const enhancedStats = useEnhancedBookingStats();
+  const [recentBookings, setRecentBookings] = useState<BookingWithDetails[]>([]);
+  const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>('week');
+
+  // Use the enhanced stats from the hook
+  const stats = enhancedStats.loading ? {
     totalBookings: 0,
     confirmedBookings: 0,
     pendingBookings: 0,
     cancelledBookings: 0,
     completedBookings: 0,
     totalRevenue: 0,
-    avgRating: 0,
+    avgRating: 4.8,
     profileViews: 0,
     weeklyChange: 0,
     revenueChange: 0,
     viewsChange: 0,
-  });
-  const [recentBookings, setRecentBookings] = useState<BookingWithDetails[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
+  } : {
+    totalBookings: enhancedStats.totalBookings,
+    confirmedBookings: enhancedStats.confirmedBookings,
+    pendingBookings: enhancedStats.pendingBookings,
+    cancelledBookings: enhancedStats.cancelledBookings,
+    completedBookings: enhancedStats.confirmedBookings, // Assuming confirmed = completed for now
+    totalRevenue: enhancedStats.totalRevenue,
+    avgRating: 4.8,
+    profileViews: enhancedStats.profileViews,
+    weeklyChange: enhancedStats.growthPercentage || 0,
+    revenueChange: enhancedStats.growthPercentage || 0,
+    viewsChange: (enhancedStats.growthPercentage || 0) * 0.8,
+  };
 
   useEffect(() => {
     if (userProfile) {
-      loadDashboardData();
+      loadRecentBookings();
     }
-  }, [userProfile, selectedPeriod]);
+  }, [userProfile]);
 
-  const loadDashboardData = async () => {
+  useEffect(() => {
+    setLoading(enhancedStats.loading);
+  }, [enhancedStats.loading]);
+
+  const loadRecentBookings = async () => {
     if (!userProfile) return;
 
     try {
-      setLoading(true);
-      
-      // Calculate date range based on selected period
-      const now = new Date();
-      const periodStart = new Date();
-      
-      switch (selectedPeriod) {
-        case 'week':
-          periodStart.setDate(now.getDate() - 7);
-          break;
-        case 'month':
-          periodStart.setMonth(now.getMonth() - 1);
-          break;
-        case 'year':
-          periodStart.setFullYear(now.getFullYear() - 1);
-          break;
-      }
-
-      // Fetch all bookings for the user
-      // Use user.uid to ensure consistency with BookingHistory
       const bookingsQuery = query(
         collection(db, 'bookings'),
-        where('userId', '==', userProfile.id), // userProfile.id should be same as user.uid
+        where('userId', '==', userProfile.id),
         orderBy('createdAt', 'desc')
       );
 
@@ -139,49 +139,6 @@ export function Overview() {
         updatedAt: doc.data().updatedAt?.toDate() || new Date(),
       })) as Booking[];
 
-      // Filter bookings for the selected period
-      const periodBookings = allBookings.filter(booking => 
-        booking.createdAt >= periodStart
-      );
-
-      // Calculate statistics
-      const totalBookings = periodBookings.length;
-      const confirmedBookings = periodBookings.filter(b => b.status === BookingStatus.CONFIRMED).length;
-      const pendingBookings = periodBookings.filter(b => b.status === BookingStatus.PENDING).length;
-      const cancelledBookings = periodBookings.filter(b => b.status === BookingStatus.CANCELLED).length;
-      const completedBookings = periodBookings.filter(b => b.status === BookingStatus.COMPLETED).length;
-
-      // Calculate revenue (assuming $50 per booking - you can adjust this)
-      const totalRevenue = completedBookings * 50;
-
-      // Calculate changes compared to previous period
-      const previousPeriodStart = new Date(periodStart);
-      
-      switch (selectedPeriod) {
-        case 'week':
-          previousPeriodStart.setDate(previousPeriodStart.getDate() - 7);
-          break;
-        case 'month':
-          previousPeriodStart.setMonth(previousPeriodStart.getMonth() - 1);
-          break;
-        case 'year':
-          previousPeriodStart.setFullYear(previousPeriodStart.getFullYear() - 1);
-          break;
-      }
-
-      const previousPeriodBookings = allBookings.filter(booking => 
-        booking.createdAt >= previousPeriodStart && booking.createdAt < periodStart
-      );
-
-      const weeklyChange = previousPeriodBookings.length > 0 
-        ? ((totalBookings - previousPeriodBookings.length) / previousPeriodBookings.length) * 100
-        : totalBookings > 0 ? 100 : 0;
-
-      const previousRevenue = previousPeriodBookings.filter(b => b.status === BookingStatus.COMPLETED).length * 50;
-      const revenueChange = previousRevenue > 0 
-        ? ((totalRevenue - previousRevenue) / previousRevenue) * 100
-        : totalRevenue > 0 ? 100 : 0;
-
       // Format recent bookings
       const recentBookingsWithDetails: BookingWithDetails[] = allBookings.slice(0, 5).map(booking => ({
         ...booking,
@@ -193,33 +150,15 @@ export function Overview() {
         durationString: `${booking.duration} min`,
       }));
 
-      setStats({
-        totalBookings,
-        confirmedBookings,
-        pendingBookings,
-        cancelledBookings,
-        completedBookings,
-        totalRevenue,
-        avgRating: 4.8, // Static for now - can be calculated from feedback
-        profileViews: Math.floor(totalBookings * 3.2) || 42, // Estimated based on bookings or default
-        weeklyChange,
-        revenueChange,
-        viewsChange: weeklyChange * 0.8, // Estimated relationship
-      });
-
       setRecentBookings(recentBookingsWithDetails);
     } catch (error) {
-      console.error('Error loading dashboard data:', error);
-      addNotification({
-        type: 'error',
-        title: 'Loading Error',
-        message: 'Failed to load dashboard data. Please refresh the page.',
-        duration: 0, // No floating toast for errors, only in bell
-        persistent: true,
-      });
-    } finally {
-      setLoading(false);
+      console.error('Error loading recent bookings:', error);
     }
+  };
+
+  const loadDashboardData = async () => {
+    // This function is no longer needed as we use enhancedStats
+    // Keeping it for backward compatibility
   };
 
   const copyBookingLink = async () => {
@@ -334,7 +273,7 @@ export function Overview() {
             {['week', 'month', 'year'].map((period) => (
               <button
                 key={period}
-                onClick={() => setSelectedPeriod(period)}
+                onClick={() => setSelectedPeriod(period as 'week' | 'month' | 'year')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   selectedPeriod === period
                     ? 'bg-blue-500 text-white shadow-sm'
@@ -410,7 +349,7 @@ export function Overview() {
           {['week', 'month', 'year'].map((period) => (
             <button
               key={period}
-              onClick={() => setSelectedPeriod(period)}
+              onClick={() => setSelectedPeriod(period as 'week' | 'month' | 'year')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                 selectedPeriod === period
                   ? 'bg-blue-500 text-white shadow-sm'

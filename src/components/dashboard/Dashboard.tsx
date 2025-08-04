@@ -4,12 +4,15 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Sidebar } from './Sidebar';
 import { Overview } from './Overview';
+import { Calendar } from './Calendar';
+
 import { AvailabilitySettings } from './AvailabilitySettings';
 import { Groups } from './Groups';
 import { BookingSettings } from './BookingSettings';
 import { BookingHistory } from './BookingHistory';
 import { AccountsList } from '@/components/accounts/AccountsList';
 import { NotificationBell } from '@/components/ui/NotificationBell';
+import { UserProfileDropdown } from '@/components/ui/UserProfileDropdown';
 import { 
   Bars3Icon, 
   MagnifyingGlassIcon,
@@ -17,14 +20,15 @@ import {
   FireIcon,
   ChartBarIcon,
   TrophyIcon,
-  UserGroupIcon
+  UserGroupIcon,
+  CalendarDaysIcon
 } from '@heroicons/react/24/outline';
 import { Card, CardContent } from '@/components/ui/Card';
 import { NotificationContainer } from '@/components/ui/Notification';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useBookingStats } from '@/hooks/useBookingStats';
 
-export type DashboardView = 'overview' | 'availability' | 'groups' | 'booking-settings' | 'history' | 'accounts';
+export type DashboardView = 'overview' | 'calendar' | 'availability' | 'groups' | 'booking-settings' | 'history' | 'accounts';
 
 export function Dashboard() {
   const { userProfile } = useAuth();
@@ -37,6 +41,9 @@ export function Dashboard() {
     switch (currentView) {
       case 'overview':
         return <Overview />;
+      case 'calendar':
+        return <Calendar />;
+
       case 'availability':
         return <AvailabilitySettings />;
       case 'groups':
@@ -56,6 +63,9 @@ export function Dashboard() {
     switch (currentView) {
       case 'overview':
         return 'Dashboard Overview';
+      case 'calendar':
+        return 'Calendar View';
+
       case 'availability':
         return 'Availability Settings';
       case 'booking-settings':
@@ -73,6 +83,8 @@ export function Dashboard() {
     switch (currentView) {
       case 'overview':
         return 'Monitor your schedule performance and booking insights';
+      case 'calendar':
+        return 'View all your meetings with interactive calendar and detailed meeting information';
       case 'availability':
         return 'Set your weekly availability and working hours';
       case 'booking-settings':
@@ -90,6 +102,9 @@ export function Dashboard() {
     switch (currentView) {
       case 'overview':
         return <ChartBarIcon className="h-6 w-6" />;
+      case 'calendar':
+        return <CalendarDaysIcon className="h-6 w-6" />;
+
       case 'availability':
         return <SparklesIcon className="h-6 w-6" />;
       case 'groups':
@@ -171,6 +186,12 @@ export function Dashboard() {
 
                 {/* Enhanced Notifications */}
                 <NotificationBell />
+                
+                {/* Separator */}
+                <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
+                
+                {/* User Profile Dropdown */}
+                <UserProfileDropdown />
               </div>
             </div>
           </div>

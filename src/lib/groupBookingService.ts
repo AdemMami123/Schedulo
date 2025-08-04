@@ -1,5 +1,5 @@
 import { collection, addDoc, serverTimestamp, doc, updateDoc, getDocs, getDoc, query, where } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import {
   GroupBooking,
   GroupMeetingRequest,
@@ -144,6 +144,13 @@ export class GroupBookingService {
 
   static async createGroupBooking(request: GroupMeetingRequest): Promise<string> {
     try {
+      // Check if user is authenticated
+      if (!auth.currentUser) {
+        throw new Error('User must be authenticated to create group bookings');
+      }
+
+      console.log('🔐 User authenticated:', auth.currentUser.email);
+
       // Validate request
       if (!request.groupId || !request.title || !request.preferredDate || !request.duration) {
         throw new Error('Missing required fields for group booking');
