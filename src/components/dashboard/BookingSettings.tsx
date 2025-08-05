@@ -996,50 +996,25 @@ export function BookingSettings() {
 
           <div className="flex items-center space-x-4">
             {!profile?.googleCalendarConnected ? (
-              <>
-                <button
-                  onClick={handleConnectGoogleCalendar}
-                  disabled={connectingCalendar}
-                  className={cn(
-                    "flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2",
-                    connectingCalendar
-                      ? "bg-slate-400 text-white cursor-not-allowed"
-                      : "bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 hover:shadow-lg hover:scale-105"
-                  )}
-                >
-                  {connectingCalendar ? (
-                    <LoadingSpinner size="sm" />
-                  ) : (
-                    <>
-                      <LinkIcon className="h-5 w-5" />
-                      <span>Connect Google Calendar</span>
-                    </>
-                  )}
-                </button>
-                
-                {/* Debug button - remove in production */}
-                <button
-                  onClick={async () => {
-                    if (!userProfile?.id) return;
-                    try {
-                      const response = await fetch(`/api/debug/google-calendar?userId=${userProfile.id}`);
-                      const data = await response.json();
-                      console.log('Debug info:', data);
-                      addNotification({
-                        type: 'info',
-                        title: 'Debug Info',
-                        message: 'Check console for detailed debug information',
-                        duration: 3000,
-                      });
-                    } catch (error) {
-                      console.error('Debug request failed:', error);
-                    }
-                  }}
-                  className="px-3 py-2 text-sm bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-                >
-                  Debug
-                </button>
-              </>
+              <button
+                onClick={handleConnectGoogleCalendar}
+                disabled={connectingCalendar}
+                className={cn(
+                  "flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2",
+                  connectingCalendar
+                    ? "bg-slate-400 text-white cursor-not-allowed"
+                    : "bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 hover:shadow-lg hover:scale-105"
+                )}
+              >
+                {connectingCalendar ? (
+                  <LoadingSpinner size="sm" />
+                ) : (
+                  <>
+                    <LinkIcon className="h-5 w-5" />
+                    <span>Connect Google Calendar</span>
+                  </>
+                )}
+              </button>
             ) : (
               <button
                 onClick={handleDisconnectGoogleCalendar}
