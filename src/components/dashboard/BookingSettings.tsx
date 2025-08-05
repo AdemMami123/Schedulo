@@ -152,7 +152,8 @@ export function BookingSettings() {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const status = params.get('status');
-      const error = params.get('error');
+      const error = params.get('calendar_error');
+      const details = params.get('details');
       
       if (status === 'calendar_connected') {
         addNotification({
@@ -170,11 +171,50 @@ export function BookingSettings() {
         // Refresh profile data
         loadProfile();
       } else if (error) {
+        let errorMessage = 'Failed to connect Google Calendar. Please try again.';
+        
+        // Provide more specific error messages
+        switch (error) {
+          case 'access_denied':
+            errorMessage = 'Access was denied. Please grant the necessary permissions to connect your Google Calendar.';
+            break;
+          case 'token_exchange_failed':
+            errorMessage = 'Token exchange failed. Please check your Google OAuth configuration or try again.';
+            break;
+          case 'missing_tokens':
+            errorMessage = 'Missing authentication tokens. Please try connecting again.';
+            break;
+          case 'user_not_found':
+            errorMessage = 'User profile not found. Please refresh the page and try again.';
+            break;
+          case 'unexpected_error':
+            errorMessage = 'An unexpected error occurred. Please check the console for details.';
+            if (details) {
+              console.error('Google Calendar connection error details:', details);
+              try {
+                const parsedDetails = JSON.parse(decodeURIComponent(details));
+                console.error('Parsed error details:', parsedDetails);
+                errorMessage += ` Error: ${parsedDetails.message || 'Unknown error'}`;
+              } catch (parseError) {
+                console.error('Could not parse error details:', parseError);
+              }
+            }
+            break;
+          case 'missing_parameters':
+            errorMessage = 'Missing required OAuth parameters. Please try the connection again.';
+            break;
+          case 'invalid_state':
+            errorMessage = 'Invalid OAuth state. Please try connecting again.';
+            break;
+          default:
+            errorMessage = `Connection failed: ${error.replace(/_/g, ' ')}`;
+        }
+        
         addNotification({
           type: 'error',
           title: 'Google Calendar Connection Failed',
-          message: `Failed to connect Google Calendar: ${error.replace(/_/g, ' ')}`,
-          duration: 5000,
+          message: errorMessage,
+          duration: 8000,
           persistent: true,
         });
         
@@ -331,30 +371,70 @@ export function BookingSettings() {
     try {
       setConnectingCalendar(true);
       
+      if (!userProfile?.id) {
+        throw new Error('User not authenticated');
+      }
+
+      console.log('Initiating Google Calendar connection...');
+      
       const response = await fetch('/api/auth/google-calendar', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': userProfile?.id || '',
+          'x-user-id': userProfile.id,
         },
       });
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to initiate Google Calendar connection');
+        throw new Error(errorData.error || 'Failed to get authorization URL');
       }
       
-      const data = await response.json();
+      const { url } = await response.json();
       
-      // Redirect to Google's OAuth consent screen
-      window.location.href = data.url;
+      if (!url) {
+        throw new Error('No authorization URL received');
+      }
+
+      console.log('Redirecting to Google OAuth...');
+      
+      // Add a small delay and try different redirect methods
+      setTimeout(() => {
+        try {
+          // Method 1: Direct window.location
+          window.location.href = url;
+        } catch (error) {
+          console.warn('Direct redirect failed, trying window.open...');
+          
+          // Method 2: Window.open as fallback
+          const popup = window.open(url, '_self');
+          if (!popup) {
+            throw new Error('Popup blocked - please allow popups for this site');
+          }
+        }
+      }, 100);
+
     } catch (error) {
-      console.error('Error connecting Google Calendar:', error);
+      console.error('Google Calendar connection error:', error);
+      
+      // Provide specific error messages for common issues
+      let errorMessage = 'Failed to connect to Google Calendar.';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('blocked') || error.message.includes('popup')) {
+          errorMessage = 'Connection blocked by browser or ad blocker. Please disable ad blockers and try again.';
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+          errorMessage = 'Network error. Please check your internet connection and try again.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       addNotification({
         type: 'error',
-        title: 'Connection Failed',
-        message: error instanceof Error ? error.message : 'Failed to connect Google Calendar',
-        duration: 5000,
+        title: 'Google Calendar Connection Failed',
+        message: errorMessage,
+        duration: 8000,
         persistent: true,
       });
     } finally {
@@ -916,31 +996,56 @@ export function BookingSettings() {
 
           <div className="flex items-center space-x-4">
             {!profile?.googleCalendarConnected ? (
-              <button
-                onClick={handleConnectGoogleCalendar}
-                disabled={connectingCalendar}
-                className={cn(
-                  "flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200",
-                  connectingCalendar
-                    ? "bg-slate-400 text-white cursor-not-allowed"
-                    : "bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 hover:shadow-lg hover:scale-105"
-                )}
-              >
-                {connectingCalendar ? (
-                  <LoadingSpinner size="sm" />
-                ) : (
-                  <>
-                    <LinkIcon className="h-5 w-5" />
-                    <span>Connect Google Calendar</span>
-                  </>
-                )}
-              </button>
+              <>
+                <button
+                  onClick={handleConnectGoogleCalendar}
+                  disabled={connectingCalendar}
+                  className={cn(
+                    "flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2",
+                    connectingCalendar
+                      ? "bg-slate-400 text-white cursor-not-allowed"
+                      : "bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 hover:shadow-lg hover:scale-105"
+                  )}
+                >
+                  {connectingCalendar ? (
+                    <LoadingSpinner size="sm" />
+                  ) : (
+                    <>
+                      <LinkIcon className="h-5 w-5" />
+                      <span>Connect Google Calendar</span>
+                    </>
+                  )}
+                </button>
+                
+                {/* Debug button - remove in production */}
+                <button
+                  onClick={async () => {
+                    if (!userProfile?.id) return;
+                    try {
+                      const response = await fetch(`/api/debug/google-calendar?userId=${userProfile.id}`);
+                      const data = await response.json();
+                      console.log('Debug info:', data);
+                      addNotification({
+                        type: 'info',
+                        title: 'Debug Info',
+                        message: 'Check console for detailed debug information',
+                        duration: 3000,
+                      });
+                    } catch (error) {
+                      console.error('Debug request failed:', error);
+                    }
+                  }}
+                  className="px-3 py-2 text-sm bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                >
+                  Debug
+                </button>
+              </>
             ) : (
               <button
                 onClick={handleDisconnectGoogleCalendar}
                 disabled={connectingCalendar}
                 className={cn(
-                  "flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200",
+                  "flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2",
                   connectingCalendar
                     ? "bg-slate-400 text-white cursor-not-allowed"
                     : "bg-red-100 text-red-700 hover:bg-red-200"
