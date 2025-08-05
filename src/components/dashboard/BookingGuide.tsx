@@ -81,7 +81,7 @@ export function BookingGuide() {
     if (!userProfile?.username) return;
     
     const bookingUrl = `/schedule/${userProfile.username}`;
-    window.open(bookingUrl, '_blank');
+    window.location.href = bookingUrl;
   };
 
   const hasUsername = Boolean(userProfile?.username);

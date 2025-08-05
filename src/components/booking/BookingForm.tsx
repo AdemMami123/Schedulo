@@ -100,11 +100,10 @@ export function BookingForm({ user, profile, selectedSlot, onComplete, onCancel 
       
       // IMPORTANT: userId should be the calendar owner's ID (the host)
       // user.id is the ID of the person whose calendar we're booking
-      const bookingData = {
+      const bookingData: any = {
         userId: user.id, // This should be the host's ID (calendar owner)
         guestName: formData.name.trim(),
         guestEmail: formData.email.trim(),
-        guestNotes: formData.notes.trim() || undefined, // Only include notes if they exist
         startTime: selectedSlot.start,
         endTime: selectedSlot.end,
         duration: selectedSlot.duration,
@@ -113,6 +112,12 @@ export function BookingForm({ user, profile, selectedSlot, onComplete, onCancel 
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
+
+      // Only add guestNotes if there's actual content
+      const notesText = formData.notes.trim();
+      if (notesText.length > 0) {
+        bookingData.guestNotes = notesText;
+      }
 
       console.log('Booking data being saved:', bookingData);
       console.log('Booking logic check:', {
@@ -219,7 +224,7 @@ export function BookingForm({ user, profile, selectedSlot, onComplete, onCancel 
             guest: {
               name: formData.name,
               email: formData.email,
-              notes: formData.notes.trim() || undefined, // Only include notes if they exist
+              ...(formData.notes.trim() && { notes: formData.notes.trim() }) // Only include notes if they exist
             },
             selectedSlot,
             status: bookingStatus === BookingStatus.CONFIRMED ? 'confirmed' : 'pending' // Pass the correct status

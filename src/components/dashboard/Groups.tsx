@@ -1,59 +1,78 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { createGroup, updateGroup, deleteGroup } from '@/lib/groups';
-import { Group } from '@/types/group';
-import { UserProfile } from '@/types/index';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { ResponsiveGrid } from '@/components/ui/ResponsiveGrid';
-import GroupAvailability from '@/components/dashboard/GroupAvailability';
-import { Plus, Users, X, Calendar, Eye, Settings, Edit, Trash2 } from 'lucide-react';
-import { 
-  UserGroupIcon, 
-  CalendarDaysIcon, 
+import { useState, useEffect } from "react";
+import { createGroup, updateGroup, deleteGroup } from "@/lib/groups";
+import { Group } from "@/types/group";
+import { UserProfile } from "@/types/index";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { ResponsiveGrid } from "@/components/ui/ResponsiveGrid";
+import GroupAvailability from "@/components/dashboard/GroupAvailability";
+import {
+  Plus,
+  Users,
+  X,
+  Calendar,
+  Eye,
+  Settings,
+  Edit,
+  Trash2,
+} from "lucide-react";
+import {
+  UserGroupIcon,
+  CalendarDaysIcon,
   ClockIcon,
   PlusIcon,
   EyeIcon,
-  Cog6ToothIcon
-} from '@heroicons/react/24/outline';
-import { getDocs, collection, query, where } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '@/contexts/AuthContext';
-import { getUsersByEmails, UserWithProfile } from '@/lib/userLookup';
+  Cog6ToothIcon,
+} from "@heroicons/react/24/outline";
+import { getDocs, collection, query, where } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { useAuth } from "@/contexts/AuthContext";
+import { getUsersByEmails, UserWithProfile } from "@/lib/userLookup";
 
 export function Groups() {
   const { userProfile } = useAuth();
   const [groups, setGroups] = useState<Group[]>([]);
-  const [usersWithProfiles, setUsersWithProfiles] = useState<UserWithProfile[]>([]);
+  const [usersWithProfiles, setUsersWithProfiles] = useState<UserWithProfile[]>(
+    []
+  );
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
-  const [viewMode, setViewMode] = useState<'list' | 'availability'>('list');
+  const [viewMode, setViewMode] = useState<"list" | "availability">("list");
   const [open, setOpen] = useState(false);
-  const [groupName, setGroupName] = useState('');
+  const [groupName, setGroupName] = useState("");
   const [members, setMembers] = useState<string[]>([]);
-  const [emailInput, setEmailInput] = useState('');
+  const [emailInput, setEmailInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [profilesLoading, setProfilesLoading] = useState(false);
 
   // Edit/Delete state
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
-  const [editGroupName, setEditGroupName] = useState('');
+  const [editGroupName, setEditGroupName] = useState("");
   const [editMembers, setEditMembers] = useState<string[]>([]);
-  const [editEmailInput, setEditEmailInput] = useState('');
+  const [editEmailInput, setEditEmailInput] = useState("");
   const [editLoading, setEditLoading] = useState(false);
-  const [deleteConfirmGroup, setDeleteConfirmGroup] = useState<Group | null>(null);
+  const [deleteConfirmGroup, setDeleteConfirmGroup] = useState<Group | null>(
+    null
+  );
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Search and filter state
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'created' | 'member'>('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState<"all" | "created" | "member">(
+    "all"
+  );
 
   // Group statistics
   const groupStats = {
     total: groups.length,
-    created: groups.filter(g => g.createdBy === userProfile?.id).length,
-    member: groups.filter(g => g.members.includes(userProfile?.email || '') && g.createdBy !== userProfile?.id).length
+    created: groups.filter((g) => g.createdBy === userProfile?.id).length,
+    member: groups.filter(
+      (g) =>
+        g.members.includes(userProfile?.email || "") &&
+        g.createdBy !== userProfile?.id
+    ).length,
   };
 
   const fetchGroups = async () => {
@@ -62,24 +81,24 @@ export function Groups() {
 
       // Fetch groups where user is either creator or member
       const createdGroupsQuery = query(
-        collection(db, 'groups'),
-        where('createdBy', '==', userProfile.id)
+        collection(db, "groups"),
+        where("createdBy", "==", userProfile.id)
       );
 
       const memberGroupsQuery = query(
-        collection(db, 'groups'),
-        where('members', 'array-contains', userProfile.email)
+        collection(db, "groups"),
+        where("members", "array-contains", userProfile.email)
       );
 
       const [createdSnapshot, memberSnapshot] = await Promise.all([
         getDocs(createdGroupsQuery),
-        getDocs(memberGroupsQuery)
+        getDocs(memberGroupsQuery),
       ]);
 
       // Combine and deduplicate groups
       const groupMap = new Map<string, Group>();
 
-      [...createdSnapshot.docs, ...memberSnapshot.docs].forEach(doc => {
+      [...createdSnapshot.docs, ...memberSnapshot.docs].forEach((doc) => {
         if (!groupMap.has(doc.id)) {
           groupMap.set(doc.id, {
             id: doc.id,
@@ -91,19 +110,19 @@ export function Groups() {
       const fetchedGroups = Array.from(groupMap.values());
       setGroups(fetchedGroups);
     } catch (error) {
-      console.error('Error fetching groups:', error);
+      console.error("Error fetching groups:", error);
     }
   };
 
   const fetchUserProfiles = async () => {
     try {
       setProfilesLoading(true);
-      
+
       // Get all unique member emails from all groups
       const allMemberEmails = new Set<string>();
-      groups.forEach(group => {
+      groups.forEach((group) => {
         if (Array.isArray(group.members)) {
-          group.members.forEach(email => allMemberEmails.add(email));
+          group.members.forEach((email) => allMemberEmails.add(email));
         }
       });
 
@@ -113,10 +132,12 @@ export function Groups() {
       }
 
       // Use the new user lookup utility
-      const usersWithProfiles = await getUsersByEmails(Array.from(allMemberEmails));
+      const usersWithProfiles = await getUsersByEmails(
+        Array.from(allMemberEmails)
+      );
       setUsersWithProfiles(usersWithProfiles);
     } catch (error) {
-      console.error('Error fetching user profiles:', error);
+      console.error("Error fetching user profiles:", error);
     } finally {
       setProfilesLoading(false);
     }
@@ -139,13 +160,13 @@ export function Groups() {
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(emailInput)) {
-      alert('Please enter a valid email address');
+      alert("Please enter a valid email address");
       return;
     }
 
     // Add member (we'll validate existence when creating the group)
     setMembers([...members, emailInput]);
-    setEmailInput('');
+    setEmailInput("");
   };
 
   const handleCreateGroup = async () => {
@@ -155,12 +176,12 @@ export function Groups() {
     try {
       await createGroup(groupName, members, userProfile.id);
       setOpen(false);
-      setGroupName('');
+      setGroupName("");
       setMembers([]);
       await fetchGroups();
     } catch (error) {
-      console.error('Error creating group:', error);
-      alert('Failed to create group. Please try again.');
+      console.error("Error creating group:", error);
+      alert("Failed to create group. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -171,7 +192,7 @@ export function Groups() {
     setEditingGroup(group);
     setEditGroupName(group.name);
     setEditMembers([...group.members]);
-    setEditEmailInput('');
+    setEditEmailInput("");
   };
 
   const handleAddEditMember = () => {
@@ -180,16 +201,16 @@ export function Groups() {
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(editEmailInput)) {
-      alert('Please enter a valid email address');
+      alert("Please enter a valid email address");
       return;
     }
 
     setEditMembers([...editMembers, editEmailInput]);
-    setEditEmailInput('');
+    setEditEmailInput("");
   };
 
   const handleRemoveEditMember = (email: string) => {
-    setEditMembers(editMembers.filter(member => member !== email));
+    setEditMembers(editMembers.filter((member) => member !== email));
   };
 
   const handleUpdateGroup = async () => {
@@ -201,17 +222,21 @@ export function Groups() {
         editingGroup.id,
         {
           name: editGroupName,
-          members: editMembers
+          members: editMembers,
         },
         userProfile.id
       );
       setEditingGroup(null);
-      setEditGroupName('');
+      setEditGroupName("");
       setEditMembers([]);
       await fetchGroups();
     } catch (error) {
-      console.error('Error updating group:', error);
-      alert(error instanceof Error ? error.message : 'Failed to update group. Please try again.');
+      console.error("Error updating group:", error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to update group. Please try again."
+      );
     } finally {
       setEditLoading(false);
     }
@@ -219,9 +244,9 @@ export function Groups() {
 
   const handleCancelEdit = () => {
     setEditingGroup(null);
-    setEditGroupName('');
+    setEditGroupName("");
     setEditMembers([]);
-    setEditEmailInput('');
+    setEditEmailInput("");
   };
 
   // Delete group handlers
@@ -241,13 +266,17 @@ export function Groups() {
       // If we're viewing the deleted group, go back to list
       if (selectedGroup?.id === deleteConfirmGroup.id) {
         setSelectedGroup(null);
-        setViewMode('list');
+        setViewMode("list");
       }
     } catch (error) {
-      console.error('Error deleting group:', error);
+      console.error("Error deleting group:", error);
 
       // If it's an active bookings error and not a force delete, offer force delete option
-      if (error instanceof Error && error.message.includes('active bookings') && !forceDelete) {
+      if (
+        error instanceof Error &&
+        error.message.includes("active bookings") &&
+        !forceDelete
+      ) {
         const confirmForceDelete = confirm(
           `${error.message}\n\nWould you like to force delete this group anyway? This will cancel all associated meetings and cannot be undone.`
         );
@@ -258,7 +287,11 @@ export function Groups() {
           return;
         }
       } else {
-        alert(error instanceof Error ? error.message : 'Failed to delete group. Please try again.');
+        alert(
+          error instanceof Error
+            ? error.message
+            : "Failed to delete group. Please try again."
+        );
       }
     } finally {
       setDeleteLoading(false);
@@ -270,18 +303,23 @@ export function Groups() {
   };
 
   // Filter and search groups
-  const filteredGroups = groups.filter(group => {
+  const filteredGroups = groups.filter((group) => {
     // Search filter
-    const matchesSearch = searchTerm === '' ||
+    const matchesSearch =
+      searchTerm === "" ||
       group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      group.members.some(member => member.toLowerCase().includes(searchTerm.toLowerCase()));
+      group.members.some((member) =>
+        member.toLowerCase().includes(searchTerm.toLowerCase())
+      );
 
     // Type filter
     let matchesType = true;
-    if (filterType === 'created') {
+    if (filterType === "created") {
       matchesType = group.createdBy === userProfile?.id;
-    } else if (filterType === 'member') {
-      matchesType = group.members.includes(userProfile?.email || '') && group.createdBy !== userProfile?.id;
+    } else if (filterType === "member") {
+      matchesType =
+        group.members.includes(userProfile?.email || "") &&
+        group.createdBy !== userProfile?.id;
     }
 
     return matchesSearch && matchesType;
@@ -310,26 +348,28 @@ export function Groups() {
                 </div>
                 <div className="flex items-center space-x-3">
                   <Button
-                    variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                    variant={viewMode === "list" ? "secondary" : "ghost"}
                     size="sm"
-                    onClick={() => setViewMode('list')}
+                    onClick={() => setViewMode("list")}
                     className="text-white border-white/20 hover:bg-white/20"
                   >
                     <UserGroupIcon className="h-4 w-4 mr-2" />
                     Groups
                   </Button>
                   <Button
-                    variant={viewMode === 'availability' ? 'secondary' : 'ghost'}
+                    variant={
+                      viewMode === "availability" ? "secondary" : "ghost"
+                    }
                     size="sm"
-                    onClick={() => setViewMode('availability')}
+                    onClick={() => setViewMode("availability")}
                     className="text-white border-white/20 hover:bg-white/20"
                     disabled={!selectedGroup}
                   >
                     <CalendarDaysIcon className="h-4 w-4 mr-2" />
                     Availability
                   </Button>
-                  <Button 
-                    onClick={() => setOpen(true)} 
+                  <Button
+                    onClick={() => setOpen(true)}
                     className="bg-white text-blue-600 hover:bg-blue-50"
                   >
                     <PlusIcon className="h-4 w-4 mr-2" />
@@ -342,7 +382,7 @@ export function Groups() {
         </div>
 
         {/* Group Statistics */}
-        {viewMode === 'list' && groups.length > 0 && (
+        {viewMode === "list" && groups.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="border-0 bg-white dark:bg-slate-800 shadow-lg">
               <CardContent className="p-6">
@@ -351,8 +391,12 @@ export function Groups() {
                     <UserGroupIcon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Groups</p>
-                    <p className="text-2xl font-bold text-slate-900 dark:text-white">{groupStats.total}</p>
+                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                      Total Groups
+                    </p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                      {groupStats.total}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -365,8 +409,12 @@ export function Groups() {
                     <Settings className="h-6 w-6 text-green-600 dark:text-green-400" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Created by You</p>
-                    <p className="text-2xl font-bold text-slate-900 dark:text-white">{groupStats.created}</p>
+                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                      Created by You
+                    </p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                      {groupStats.created}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -379,8 +427,12 @@ export function Groups() {
                     <Users className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Member Of</p>
-                    <p className="text-2xl font-bold text-slate-900 dark:text-white">{groupStats.member}</p>
+                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                      Member Of
+                    </p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                      {groupStats.member}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -390,7 +442,7 @@ export function Groups() {
 
         {/* Content Area */}
         <div className="space-y-6">
-          {viewMode === 'list' ? (
+          {viewMode === "list" ? (
             <Card className="border-0 bg-white dark:bg-slate-800 shadow-lg">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -408,8 +460,18 @@ export function Groups() {
                         className="w-64 pl-10"
                       />
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        <svg
+                          className="h-4 w-4 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                          />
                         </svg>
                       </div>
                     </div>
@@ -417,7 +479,11 @@ export function Groups() {
                     {/* Filter Dropdown */}
                     <select
                       value={filterType}
-                      onChange={(e) => setFilterType(e.target.value as 'all' | 'created' | 'member')}
+                      onChange={(e) =>
+                        setFilterType(
+                          e.target.value as "all" | "created" | "member"
+                        )
+                      }
                       className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
                     >
                       <option value="all">All Groups</option>
@@ -429,15 +495,18 @@ export function Groups() {
               </CardHeader>
               <CardContent>
                 {filteredGroups.length > 0 ? (
-                  <ResponsiveGrid columns={{ mobile: 1, tablet: 2, desktop: 3 }} gap="normal">
+                  <ResponsiveGrid
+                    columns={{ mobile: 1, tablet: 2, desktop: 3 }}
+                    gap="normal"
+                  >
                     {filteredGroups.map((group, idx) => {
                       const gradients = [
-                        'from-blue-500 to-blue-600',
-                        'from-green-500 to-green-600',
-                        'from-purple-500 to-purple-600',
-                        'from-pink-500 to-pink-600',
-                        'from-yellow-500 to-yellow-600',
-                        'from-teal-500 to-teal-600',
+                        "from-blue-500 to-blue-600",
+                        "from-green-500 to-green-600",
+                        "from-purple-500 to-purple-600",
+                        "from-pink-500 to-pink-600",
+                        "from-yellow-500 to-yellow-600",
+                        "from-teal-500 to-teal-600",
                       ];
                       const gradient = gradients[idx % gradients.length];
 
@@ -447,17 +516,26 @@ export function Groups() {
                           className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
                           onClick={() => {
                             setSelectedGroup(group);
-                            setViewMode('availability');
+                            setViewMode("availability");
                           }}
                         >
-                          <CardHeader className={`bg-gradient-to-r ${gradient} text-white rounded-t-xl`}>
+                          <CardHeader
+                            className={`bg-gradient-to-r ${gradient} text-white rounded-t-xl`}
+                          >
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
                                 <CardTitle className="text-lg font-bold">
                                   {group.name}
                                 </CardTitle>
                                 <p className="text-white/80 text-sm">
-                                  {Array.isArray(group.members) ? group.members.length : 0} member{Array.isArray(group.members) && group.members.length !== 1 ? 's' : ''}
+                                  {Array.isArray(group.members)
+                                    ? group.members.length
+                                    : 0}{" "}
+                                  member
+                                  {Array.isArray(group.members) &&
+                                  group.members.length !== 1
+                                    ? "s"
+                                    : ""}
                                 </p>
                               </div>
                               <div className="flex flex-col items-end space-y-1">
@@ -474,17 +552,20 @@ export function Groups() {
                             </div>
                           </CardHeader>
                           <CardContent className="p-4">
-                            {Array.isArray(group.members) && group.members.length > 0 ? (
+                            {Array.isArray(group.members) &&
+                            group.members.length > 0 ? (
                               <div className="space-y-3">
                                 <div className="flex flex-wrap gap-2">
-                                  {group.members.slice(0, 3).map((email: string) => (
-                                    <span
-                                      key={email}
-                                      className="bg-slate-100 dark:bg-slate-700 text-sm px-3 py-1 rounded-full text-slate-700 dark:text-slate-300"
-                                    >
-                                      {email.split('@')[0]}
-                                    </span>
-                                  ))}
+                                  {group.members
+                                    .slice(0, 3)
+                                    .map((email: string) => (
+                                      <span
+                                        key={email}
+                                        className="bg-slate-100 dark:bg-slate-700 text-sm px-3 py-1 rounded-full text-slate-700 dark:text-slate-300"
+                                      >
+                                        {email.split("@")[0]}
+                                      </span>
+                                    ))}
                                   {group.members.length > 3 && (
                                     <span className="bg-slate-200 dark:bg-slate-600 text-sm px-3 py-1 rounded-full text-slate-600 dark:text-slate-400">
                                       +{group.members.length - 3} more
@@ -498,7 +579,7 @@ export function Groups() {
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setSelectedGroup(group);
-                                      setViewMode('availability');
+                                      setViewMode("availability");
                                     }}
                                     className="text-blue-600 hover:text-blue-700"
                                   >
@@ -514,8 +595,14 @@ export function Groups() {
                                         handleEditGroup(group);
                                       }}
                                       className="text-slate-600 hover:text-slate-700"
-                                      disabled={group.createdBy !== userProfile?.id}
-                                      title={group.createdBy !== userProfile?.id ? "Only the group creator can edit" : "Edit group"}
+                                      disabled={
+                                        group.createdBy !== userProfile?.id
+                                      }
+                                      title={
+                                        group.createdBy !== userProfile?.id
+                                          ? "Only the group creator can edit"
+                                          : "Edit group"
+                                      }
                                     >
                                       <Edit className="h-4 w-4" />
                                     </Button>
@@ -527,8 +614,14 @@ export function Groups() {
                                         handleDeleteGroup(group);
                                       }}
                                       className="text-red-600 hover:text-red-700"
-                                      disabled={group.createdBy !== userProfile?.id}
-                                      title={group.createdBy !== userProfile?.id ? "Only the group creator can delete" : "Delete group"}
+                                      disabled={
+                                        group.createdBy !== userProfile?.id
+                                      }
+                                      title={
+                                        group.createdBy !== userProfile?.id
+                                          ? "Only the group creator can delete"
+                                          : "Delete group"
+                                      }
                                     >
                                       <Trash2 className="h-4 w-4" />
                                     </Button>
@@ -554,9 +647,13 @@ export function Groups() {
                           No groups yet
                         </h3>
                         <p className="text-gray-500 dark:text-gray-400 mb-6">
-                          Create your first group to start managing team availability
+                          Create your first group to start managing team
+                          availability
                         </p>
-                        <Button onClick={() => setOpen(true)} className="mx-auto">
+                        <Button
+                          onClick={() => setOpen(true)}
+                          className="mx-auto"
+                        >
                           <PlusIcon className="h-4 w-4 mr-2" />
                           Create Your First Group
                         </Button>
@@ -567,24 +664,30 @@ export function Groups() {
                           No groups found
                         </h3>
                         <p className="text-gray-500 dark:text-gray-400 mb-6">
-                          {searchTerm ? `No groups match "${searchTerm}"` :
-                           filterType === 'created' ? 'You haven\'t created any groups yet' :
-                           filterType === 'member' ? 'You\'re not a member of any groups yet' :
-                           'No groups match the current filter'}
+                          {searchTerm
+                            ? `No groups match "${searchTerm}"`
+                            : filterType === "created"
+                              ? "You haven't created any groups yet"
+                              : filterType === "member"
+                                ? "You're not a member of any groups yet"
+                                : "No groups match the current filter"}
                         </p>
-                        {searchTerm || filterType !== 'all' ? (
+                        {searchTerm || filterType !== "all" ? (
                           <Button
                             variant="ghost"
                             onClick={() => {
-                              setSearchTerm('');
-                              setFilterType('all');
+                              setSearchTerm("");
+                              setFilterType("all");
                             }}
                             className="mx-auto"
                           >
                             Clear Filters
                           </Button>
                         ) : (
-                          <Button onClick={() => setOpen(true)} className="mx-auto">
+                          <Button
+                            onClick={() => setOpen(true)}
+                            className="mx-auto"
+                          >
                             <PlusIcon className="h-4 w-4 mr-2" />
                             Create a Group
                           </Button>
@@ -602,7 +705,7 @@ export function Groups() {
                   <div className="flex items-center justify-between">
                     <Button
                       variant="ghost"
-                      onClick={() => setViewMode('list')}
+                      onClick={() => setViewMode("list")}
                       className="text-blue-600 hover:text-blue-700"
                     >
                       ← Back to Groups
@@ -619,21 +722,25 @@ export function Groups() {
                   </div>
                 </CardContent>
               </Card>
-              
+
               {profilesLoading ? (
                 <Card className="border-0 bg-white dark:bg-slate-800 shadow-lg">
                   <CardContent className="p-12 text-center">
                     <ClockIcon className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4 animate-spin" />
-                    <p className="text-gray-500 dark:text-gray-400">Loading member profiles...</p>
+                    <p className="text-gray-500 dark:text-gray-400">
+                      Loading member profiles...
+                    </p>
                   </CardContent>
                 </Card>
               ) : (
-                <GroupAvailability 
-                  group={selectedGroup} 
-                  profiles={usersWithProfiles.map(uwp => ({
-                    ...uwp.profile!,
-                    memberEmail: uwp.email
-                  })).filter(p => p.id)} // Only include users with profiles
+                <GroupAvailability
+                  group={selectedGroup}
+                  profiles={usersWithProfiles
+                    .map((uwp) => ({
+                      ...uwp.profile!,
+                      memberEmail: uwp.email,
+                    }))
+                    .filter((p) => p.id)} // Only include users with profiles
                   usersWithProfiles={usersWithProfiles}
                   mode="collective"
                 />
@@ -648,7 +755,9 @@ export function Groups() {
             <Card className="w-full max-w-md shadow-2xl border-0">
               <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-t-xl">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl font-bold">Create New Group</CardTitle>
+                  <CardTitle className="text-xl font-bold">
+                    Create New Group
+                  </CardTitle>
                   <button
                     onClick={() => setOpen(false)}
                     className="p-2 hover:bg-white/20 rounded-lg transition-colors"
@@ -659,7 +768,10 @@ export function Groups() {
               </CardHeader>
               <CardContent className="p-6 space-y-6">
                 <div>
-                  <label htmlFor="group-name" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  <label
+                    htmlFor="group-name"
+                    className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2"
+                  >
                     Group Name
                   </label>
                   <Input
@@ -672,7 +784,10 @@ export function Groups() {
                 </div>
 
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2"
+                  >
                     Add Members by Email
                   </label>
                   <div className="flex gap-2">
@@ -684,20 +799,20 @@ export function Groups() {
                       onChange={(e) => setEmailInput(e.target.value)}
                       className="flex-1"
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
+                        if (e.key === "Enter") {
                           handleAddMember();
                         }
                       }}
                     />
-                    <Button 
-                      variant="secondary" 
+                    <Button
+                      variant="secondary"
                       onClick={handleAddMember}
                       disabled={!emailInput}
                     >
                       Add
                     </Button>
                   </div>
-                  
+
                   {members.length > 0 && (
                     <div className="mt-4">
                       <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -711,7 +826,11 @@ export function Groups() {
                           >
                             {email}
                             <button
-                              onClick={() => setMembers(members.filter((_, i) => i !== index))}
+                              onClick={() =>
+                                setMembers(
+                                  members.filter((_, i) => i !== index)
+                                )
+                              }
                               className="hover:bg-blue-200 dark:hover:bg-blue-800 rounded-full p-0.5"
                             >
                               <X size={12} />
@@ -728,7 +847,7 @@ export function Groups() {
                   disabled={loading || !groupName || members.length === 0}
                   className="w-full"
                 >
-                  {loading ? 'Creating...' : 'Create Group'}
+                  {loading ? "Creating..." : "Create Group"}
                 </Button>
               </CardContent>
             </Card>
@@ -741,7 +860,9 @@ export function Groups() {
             <Card className="w-full max-w-md shadow-2xl border-0">
               <CardHeader className="bg-gradient-to-r from-green-600 to-emerald-700 text-white rounded-t-xl">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl font-bold">Edit Group</CardTitle>
+                  <CardTitle className="text-xl font-bold">
+                    Edit Group
+                  </CardTitle>
                   <button
                     onClick={handleCancelEdit}
                     className="p-2 hover:bg-white/20 rounded-lg transition-colors"
@@ -752,7 +873,10 @@ export function Groups() {
               </CardHeader>
               <CardContent className="p-6 space-y-6">
                 <div>
-                  <label htmlFor="edit-group-name" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  <label
+                    htmlFor="edit-group-name"
+                    className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2"
+                  >
                     Group Name
                   </label>
                   <Input
@@ -765,7 +889,10 @@ export function Groups() {
                 </div>
 
                 <div>
-                  <label htmlFor="edit-email" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  <label
+                    htmlFor="edit-email"
+                    className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2"
+                  >
                     Add Members by Email
                   </label>
                   <div className="flex gap-2">
@@ -777,7 +904,7 @@ export function Groups() {
                       onChange={(e) => setEditEmailInput(e.target.value)}
                       className="flex-1"
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
+                        if (e.key === "Enter") {
                           handleAddEditMember();
                         }
                       }}
@@ -826,10 +953,14 @@ export function Groups() {
                   </Button>
                   <Button
                     onClick={handleUpdateGroup}
-                    disabled={editLoading || !editGroupName.trim() || editMembers.length === 0}
+                    disabled={
+                      editLoading ||
+                      !editGroupName.trim() ||
+                      editMembers.length === 0
+                    }
                     className="flex-1 bg-green-600 hover:bg-green-700"
                   >
-                    {editLoading ? 'Updating...' : 'Update Group'}
+                    {editLoading ? "Updating..." : "Update Group"}
                   </Button>
                 </div>
               </CardContent>
@@ -843,7 +974,9 @@ export function Groups() {
             <Card className="w-full max-w-md shadow-2xl border-0">
               <CardHeader className="bg-gradient-to-r from-red-600 to-red-700 text-white rounded-t-xl">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl font-bold">Delete Group</CardTitle>
+                  <CardTitle className="text-xl font-bold">
+                    Delete Group
+                  </CardTitle>
                   <button
                     onClick={handleCancelDelete}
                     className="p-2 hover:bg-white/20 rounded-lg transition-colors"
@@ -861,12 +994,13 @@ export function Groups() {
                     Delete "{deleteConfirmGroup.name}"?
                   </h3>
                   <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                    This action cannot be undone. All group data will be permanently deleted.
+                    This action cannot be undone. All group data will be
+                    permanently deleted.
                   </p>
                   <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 mb-4">
                     <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                      <strong>Note:</strong> Groups with active bookings cannot be deleted.
-                      Please cancel or complete all meetings first.
+                      <strong>Note:</strong> Groups with active bookings cannot
+                      be deleted. Please cancel or complete all meetings first.
                     </p>
                   </div>
                 </div>
@@ -881,11 +1015,11 @@ export function Groups() {
                     Cancel
                   </Button>
                   <Button
-                    onClick={handleConfirmDelete}
+                    onClick={() => handleConfirmDelete()}
                     disabled={deleteLoading}
                     className="flex-1 bg-red-600 hover:bg-red-700 text-white"
                   >
-                    {deleteLoading ? 'Deleting...' : 'Delete Group'}
+                    {deleteLoading ? "Deleting..." : "Delete Group"}
                   </Button>
                 </div>
               </CardContent>
