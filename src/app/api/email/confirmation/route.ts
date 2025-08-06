@@ -57,7 +57,7 @@ export const POST = async (req: NextRequest) => {
 
     // Parse and validate request body
     const data = await req.json();
-    const { host, guest, selectedSlot, status } = data;
+    const { host, guest, selectedSlot, status, jitsiMeetUrl } = data;
 
     // Detailed validation with specific error messages
     if (!host) {
@@ -126,7 +126,7 @@ export const POST = async (req: NextRequest) => {
     
     if (isNewBooking) {
       // Send booking confirmation (pending) email to the guest
-      guestEmailResult = await sendBookingConfirmationEmail(host, guest, selectedSlot, 'pending');
+      guestEmailResult = await sendBookingConfirmationEmail(host, guest, selectedSlot, 'pending', jitsiMeetUrl);
     } else {
       // Send status update email for existing booking
       guestEmailResult = await sendBookingStatusUpdateEmail(
@@ -136,7 +136,8 @@ export const POST = async (req: NextRequest) => {
           startTime: new Date(selectedSlot.start),
           endTime: new Date(selectedSlot.end),
           duration: selectedSlot.duration,
-          status: status
+          status: status,
+          jitsiMeetUrl: jitsiMeetUrl
         }
       );
     }

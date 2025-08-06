@@ -158,7 +158,8 @@ export const sendBookingConfirmationEmail = async (
   host: User,
   guest: { name: string; email: string; notes?: string },
   selectedSlot: AvailableSlot,
-  status?: string // Add status parameter
+  status?: string, // Add status parameter
+  jitsiMeetUrl?: string // Add Jitsi Meet URL parameter
 ) => {
   // Adjust subject and content based on booking status
   const isPending = status === 'pending';
@@ -204,8 +205,21 @@ export const sendBookingConfirmationEmail = async (
           <div class="details">
             <p><strong>Date & Time:</strong> ${formatDateTime(selectedSlot.start)}</p>
             <p><strong>Duration:</strong> ${selectedSlot.duration} minutes</p>
+            ${jitsiMeetUrl ? `<p><strong>Video Call:</strong> <a href="${jitsiMeetUrl}" target="_blank" style="color: #3b82f6;">Join Jitsi Meet</a></p>` : ''}
             ${guest.notes ? `<p><strong>Your Notes:</strong> ${guest.notes}</p>` : ''}
           </div>
+          
+          ${jitsiMeetUrl && !isPending ? 
+            `<div style="background-color: #e0f2fe; padding: 15px; border-radius: 5px; margin: 15px 0; border-left: 4px solid #0288d1;">
+              <h3 style="margin: 0 0 10px 0; color: #0277bd;">🎥 Video Call Information</h3>
+              <p style="margin: 0 0 10px 0;">Your meeting includes a video call. Click the link below to join:</p>
+              <a href="${jitsiMeetUrl}" target="_blank" class="button" style="background-color: #0288d1;">Join Video Call</a>
+              <p style="margin: 10px 0 0 0; font-size: 12px; color: #555;">
+                💡 Tip: Test your camera and microphone before the meeting. No account required to join.
+              </p>
+            </div>` 
+            : ''
+          }
           
           ${isPending ? 
             `<p>Please note that this time slot is tentatively reserved pending host approval.</p>` 
@@ -302,7 +316,7 @@ export const sendHostNotificationEmail = async (
 export const sendBookingStatusUpdateEmail = async (
   host: User,
   guest: { name: string; email: string; notes?: string },
-  booking: { startTime: Date; endTime: Date; duration: number; status: string },
+  booking: { startTime: Date; endTime: Date; duration: number; status: string; jitsiMeetUrl?: string },
 ) => {
   const isPending = booking.status.toLowerCase() === 'pending';
   const isConfirmed = booking.status.toLowerCase() === 'confirmed';
@@ -384,8 +398,21 @@ export const sendBookingStatusUpdateEmail = async (
           <div class="details">
             <p><strong>Date & Time:</strong> ${formatDateTime(booking.startTime)}</p>
             <p><strong>Duration:</strong> ${booking.duration} minutes</p>
+            ${booking.jitsiMeetUrl ? `<p><strong>Video Call:</strong> <a href="${booking.jitsiMeetUrl}" target="_blank" style="color: #3b82f6;">Join Jitsi Meet</a></p>` : ''}
             ${guest.notes ? `<p><strong>Your Notes:</strong> ${guest.notes}</p>` : ''}
           </div>
+          
+          ${booking.jitsiMeetUrl && isConfirmed ? 
+            `<div style="background-color: #e0f2fe; padding: 15px; border-radius: 5px; margin: 15px 0; border-left: 4px solid #0288d1;">
+              <h3 style="margin: 0 0 10px 0; color: #0277bd;">🎥 Video Call Information</h3>
+              <p style="margin: 0 0 10px 0;">Your meeting includes a video call. Click the link below to join:</p>
+              <a href="${booking.jitsiMeetUrl}" target="_blank" class="button" style="background-color: #0288d1;">Join Video Call</a>
+              <p style="margin: 10px 0 0 0; font-size: 12px; color: #555;">
+                💡 Tip: Test your camera and microphone before the meeting. No account required to join.
+              </p>
+            </div>` 
+            : ''
+          }
           
           ${isPending ?
             `<p>Your request will be reviewed soon. No further action is needed from you at this time.</p>` 

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { collection, addDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { googleCalendarService } from '@/lib/googleCalendar';
+import { jitsiMeetService } from '@/lib/jitsiMeet';
 import { reminderService } from '@/lib/reminderService';
 import { User, UserProfile, AvailableSlot, BookingStatus } from '@/types';
 import { formatDateTime, isValidEmail } from '@/lib/utils';
@@ -119,6 +120,32 @@ export function BookingForm({ user, profile, selectedSlot, onComplete, onCancel 
         bookingData.guestNotes = notesText;
       }
 
+      // Generate Jitsi Meet link for all bookings (both pending and confirmed)
+      try {
+        console.log('Generating Jitsi Meet link for new booking');
+        
+        // Create a temporary booking object with the data we have
+        const tempBooking = {
+          id: '', // Will be set after creation
+          guestName: bookingData.guestName,
+          startTime: bookingData.startTime,
+          userId: bookingData.userId,
+        };
+        
+        const jitsiRoom = jitsiMeetService.generateMeetingRoom(tempBooking);
+        console.log('Jitsi Meet room generated:', jitsiRoom);
+        
+        // Add Jitsi Meet details to booking data
+        bookingData.jitsiMeetUrl = jitsiRoom.meetingUrl;
+        bookingData.jitsiRoomName = jitsiRoom.roomName;
+        if (jitsiRoom.password) {
+          bookingData.jitsiPassword = jitsiRoom.password;
+        }
+      } catch (jitsiError) {
+        console.error('Error generating Jitsi Meet link:', jitsiError);
+        // Continue with booking creation even if Jitsi link generation fails
+      }
+
       console.log('Booking data being saved:', bookingData);
       console.log('Booking logic check:', {
         hostId: user.id,
@@ -149,6 +176,37 @@ export function BookingForm({ user, profile, selectedSlot, onComplete, onCancel 
       // Add to Firestore
       const bookingRef = await addDoc(collection(db, 'bookings'), bookingData);
 
+      // Now regenerate Jitsi Meet link with the actual booking ID for better uniqueness
+      try {
+        const actualBooking = {
+          id: bookingRef.id,
+          guestName: bookingData.guestName,
+          startTime: bookingData.startTime,
+          userId: bookingData.userId,
+        };
+        
+        const finalJitsiRoom = jitsiMeetService.generateMeetingRoom(actualBooking);
+        
+        // Update the booking document with the final Jitsi room details
+        await updateDoc(bookingRef, {
+          jitsiMeetUrl: finalJitsiRoom.meetingUrl,
+          jitsiRoomName: finalJitsiRoom.roomName,
+          ...(finalJitsiRoom.password && { jitsiPassword: finalJitsiRoom.password })
+        });
+        
+        // Update local bookingData for later use
+        bookingData.jitsiMeetUrl = finalJitsiRoom.meetingUrl;
+        bookingData.jitsiRoomName = finalJitsiRoom.roomName;
+        if (finalJitsiRoom.password) {
+          bookingData.jitsiPassword = finalJitsiRoom.password;
+        }
+        
+        console.log('Final Jitsi Meet room updated:', finalJitsiRoom);
+      } catch (jitsiUpdateError) {
+        console.error('Error updating Jitsi Meet link with booking ID:', jitsiUpdateError);
+        // Continue with existing Jitsi link if update fails
+      }
+
       // Create booking object for reminder scheduling
       const createdBooking = {
         id: bookingRef.id,
@@ -176,9 +234,13 @@ export function BookingForm({ user, profile, selectedSlot, onComplete, onCancel 
           console.log('Creating Google Calendar event for auto-confirmed booking');
           await googleCalendarService.initializeForUser(user.id);
           
+          // Include Jitsi Meet link in calendar event description
+          const jitsiMeetInfo = bookingData.jitsiMeetUrl ? 
+            `\n\nJoin Video Call: ${bookingData.jitsiMeetUrl}` : '';
+          
           const calendarEvent = {
             summary: `Meeting with ${formData.name}`,
-            description: `Meeting booked through Schedulo.\n\nGuest: ${formData.name}\nEmail: ${formData.email}${formData.notes.trim() ? `\nNotes: ${formData.notes.trim()}` : ''}`,
+            description: `Meeting booked through Schedulo.\n\nGuest: ${formData.name}\nEmail: ${formData.email}${formData.notes.trim() ? `\nNotes: ${formData.notes.trim()}` : ''}${jitsiMeetInfo}`,
             start: {
               dateTime: selectedSlot.start.toISOString(),
               timeZone: profile.timezone,
@@ -227,7 +289,8 @@ export function BookingForm({ user, profile, selectedSlot, onComplete, onCancel 
               ...(formData.notes.trim() && { notes: formData.notes.trim() }) // Only include notes if they exist
             },
             selectedSlot,
-            status: bookingStatus === BookingStatus.CONFIRMED ? 'confirmed' : 'pending' // Pass the correct status
+            status: bookingStatus === BookingStatus.CONFIRMED ? 'confirmed' : 'pending', // Pass the correct status
+            jitsiMeetUrl: bookingData.jitsiMeetUrl // Include Jitsi Meet URL
           }),
         });
 

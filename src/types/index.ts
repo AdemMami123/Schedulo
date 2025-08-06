@@ -70,6 +70,9 @@ export interface Booking {
   status: BookingStatus;
   timezone: string;
   googleCalendarEventId?: string;
+  jitsiMeetUrl?: string;
+  jitsiRoomName?: string;
+  jitsiPassword?: string;
   createdAt: Date;
   updatedAt: Date;
 }

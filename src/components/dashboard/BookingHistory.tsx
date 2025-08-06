@@ -6,6 +6,7 @@ import { useNotifications } from '@/contexts/NotificationContext';
 import { collection, query, where, getDocs, orderBy, doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { googleCalendarService } from '@/lib/googleCalendar';
+import { jitsiMeetService } from '@/lib/jitsiMeet';
 import { reminderService } from '@/lib/reminderService';
 import { Booking, BookingStatus } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -440,9 +441,45 @@ export function BookingHistory() {
         updatedAt: new Date(),
       };
       
-      // If the status is being changed to CONFIRMED, create a Google Calendar event
+      // If the status is being changed to CONFIRMED, create a Google Calendar event and Jitsi Meet link
       if (newStatus === BookingStatus.CONFIRMED && 
           bookingToUpdate.status !== BookingStatus.CONFIRMED) {
+        
+        // Generate Jitsi Meet link for the confirmed booking
+        console.log('Generating Jitsi Meet link for confirmed booking');
+        try {
+          const jitsiRoom = jitsiMeetService.generateMeetingRoom({
+            id: bookingToUpdate.id,
+            guestName: bookingToUpdate.guestName,
+            startTime: bookingToUpdate.startTime,
+            userId: bookingToUpdate.userId,
+          });
+
+          console.log('Jitsi Meet room generated:', jitsiRoom);
+          
+          // Add Jitsi Meet details to updates
+          updates.jitsiMeetUrl = jitsiRoom.meetingUrl;
+          updates.jitsiRoomName = jitsiRoom.roomName;
+          if (jitsiRoom.password) {
+            updates.jitsiPassword = jitsiRoom.password;
+          }
+
+          addNotification({
+            type: 'success',
+            title: 'Meeting Link Created',
+            message: 'A Jitsi Meet video call link has been generated for this booking.',
+            duration: 4000,
+          });
+        } catch (jitsiError) {
+          console.error('Error generating Jitsi Meet link:', jitsiError);
+          addNotification({
+            type: 'warning',
+            title: 'Video Call Link Failed',
+            message: 'Could not generate video call link, but the booking has been confirmed.',
+            duration: 5000,
+          });
+        }
+
         try {
           console.log('Checking Google Calendar connection for confirmed booking');
           console.log('Current user:', user);
@@ -488,7 +525,7 @@ export function BookingHistory() {
             addNotification({
               type: 'warning',
               title: 'Calendar Not Connected',
-              message: 'Google Calendar is not connected. The booking has been confirmed, but no calendar event was created. Connect Google Calendar in Settings to automatically create calendar events.',
+              message: 'Google Calendar is not connected. The booking has been confirmed with video call link, but no calendar event was created. Connect Google Calendar in Settings to automatically create calendar events.',
               duration: 8000,
               persistent: true,
             });
@@ -499,10 +536,13 @@ export function BookingHistory() {
             // Initialize Google Calendar service with the HOST's user ID (calendar owner)
             await googleCalendarService.initializeForUser(hostUserId);
             
-            // Create calendar event
+            // Create calendar event with Jitsi Meet link
+            const jitsiMeetInfo = updates.jitsiMeetUrl ? 
+              `\n\nJoin Video Call: ${updates.jitsiMeetUrl}` : '';
+            
             const calendarEvent = {
               summary: `Meeting with ${bookingToUpdate.guestName}`,
-              description: `Meeting booked through Schedulo.\n\nGuest: ${bookingToUpdate.guestName}\nEmail: ${bookingToUpdate.guestEmail}\n${bookingToUpdate.guestNotes ? `Notes: ${bookingToUpdate.guestNotes}` : ''}`,
+              description: `Meeting booked through Schedulo.\n\nGuest: ${bookingToUpdate.guestName}\nEmail: ${bookingToUpdate.guestEmail}\n${bookingToUpdate.guestNotes ? `Notes: ${bookingToUpdate.guestNotes}` : ''}${jitsiMeetInfo}`,
               start: {
                 dateTime: bookingToUpdate.startTime.toISOString(),
                 timeZone: bookingToUpdate.timezone,
@@ -542,7 +582,7 @@ export function BookingHistory() {
               addNotification({
                 type: 'success',
                 title: 'Calendar Event Created',
-                message: 'The meeting has been added to your Google Calendar.',
+                message: 'The meeting has been added to your Google Calendar with video call link.',
                 duration: 4000,
               });
             } else {
@@ -699,6 +739,7 @@ export function BookingHistory() {
               endTime: bookingToUpdate.endTime,
               duration: bookingToUpdate.duration,
               status: newStatus,
+              jitsiMeetUrl: updates.jitsiMeetUrl || bookingToUpdate.jitsiMeetUrl, // Include Jitsi Meet URL
             },
           }),
         });
@@ -796,6 +837,7 @@ Date: ${booking.formattedDate}
 Time: ${booking.formattedTime}
 Duration: ${booking.durationString}
 Status: ${booking.status}
+${booking.jitsiMeetUrl ? `Video Call: ${booking.jitsiMeetUrl}` : ''}
 ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
     `.trim();
 
@@ -1186,6 +1228,20 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
                       >
                         <CheckCircleIconSolid className="h-4 w-4" />
                         <span className="text-xs font-medium">Mark Complete</span>
+                      </button>
+                    )}
+                    
+                    {/* Join Video Call button for confirmed bookings with Jitsi Meet URL */}
+                    {booking.status === BookingStatus.CONFIRMED && booking.jitsiMeetUrl && (
+                      <button
+                        onClick={() => window.open(booking.jitsiMeetUrl, '_blank', 'noopener,noreferrer')}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-md transition-colors dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40"
+                        title="Join the video call for this meeting"
+                      >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        <span className="text-xs font-medium">Join Video Call</span>
                       </button>
                     )}
                     

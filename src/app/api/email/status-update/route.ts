@@ -1,142 +1,156 @@
 import { NextRequest, NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
+import { sendBookingStatusUpdateEmail, EmailResult } from '@/app/api/email/emailService.server';
 
-// Configure transporter
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT) || 587,
-  secure: process.env.SMTP_SECURE === 'true',
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASSWORD,
-  },
-});
+// Simple in-memory store for rate limiting
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 10; // 10 requests per minute
+const ipRequestCounts: Record<string, { count: number; resetTime: number }> = {};
 
-export async function POST(req: NextRequest) {
+// Helper function to validate email format
+const isValidEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+// Helper function to check rate limits
+const checkRateLimit = (ip: string): { allowed: boolean; message?: string } => {
+  const now = Date.now();
+  
+  // Initialize or reset if window has passed
+  if (!ipRequestCounts[ip] || now > ipRequestCounts[ip].resetTime) {
+    ipRequestCounts[ip] = {
+      count: 0,
+      resetTime: now + RATE_LIMIT_WINDOW,
+    };
+  }
+  
+  // Increment and check
+  ipRequestCounts[ip].count++;
+  
+  if (ipRequestCounts[ip].count > RATE_LIMIT_MAX_REQUESTS) {
+    return { 
+      allowed: false, 
+      message: `Rate limit exceeded. Try again in ${Math.ceil((ipRequestCounts[ip].resetTime - now) / 1000)} seconds.`
+    };
+  }
+  
+  return { allowed: true };
+};
+
+export const POST = async (req: NextRequest) => {
   try {
+    // Get client IP for rate limiting
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || 
+               req.headers.get('x-real-ip') ||
+               req.cookies.get('user-ip')?.value ||
+               'unknown';
+    
+    // Check rate limit
+    const rateLimitCheck = checkRateLimit(ip);
+    if (!rateLimitCheck.allowed) {
+      return NextResponse.json(
+        { error: rateLimitCheck.message },
+        { status: 429 }
+      );
+    }
+
+    // Parse and validate request body
     const data = await req.json();
     const { host, guest, booking } = data;
-    
-    if (!host || !guest || !booking) {
-      return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
+
+    // Detailed validation with specific error messages
+    if (!host) {
+      return NextResponse.json(
+        { error: 'Host information is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!guest) {
+      return NextResponse.json(
+        { error: 'Guest information is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!guest.email || !isValidEmail(guest.email)) {
+      return NextResponse.json(
+        { error: 'Valid guest email is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!guest.name || guest.name.trim().length === 0) {
+      return NextResponse.json(
+        { error: 'Guest name is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!booking) {
+      return NextResponse.json(
+        { error: 'Booking information is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!booking.startTime || !booking.endTime || !booking.duration || !booking.status) {
+      return NextResponse.json(
+        { error: 'Booking must include startTime, endTime, duration, and status' },
+        { status: 400 }
+      );
+    }
+
+    // Convert dates if they are strings
+    if (typeof booking.startTime === 'string') {
+      booking.startTime = new Date(booking.startTime);
     }
     
-    // Get status-specific content
-    let subject = '';
-    let message = '';
-    
-    switch (booking.status) {
-      case 'confirmed':
-        subject = `Booking Confirmed: Your appointment with ${host.displayName}`;
-        message = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="background-color: #f9fafb; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
-              <h1 style="color: #059669; margin: 0;">Your booking has been confirmed!</h1>
-            </div>
-            <div style="padding: 20px; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px;">
-              <p>Hello ${guest.name},</p>
-              <div style="background-color: #DCFCE7; color: #166534; padding: 8px 15px; border-radius: 4px; display: inline-block; margin-bottom: 15px; font-weight: bold; border: 1px solid #22C55E;">
-                CONFIRMED
-              </div>
-              <p>${host.displayName} has confirmed your booking for:</p>
-              <div style="background-color: #f9fafb; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                <p><strong>Date:</strong> ${new Date(booking.startTime).toLocaleDateString()}</p>
-                <p><strong>Time:</strong> ${new Date(booking.startTime).toLocaleTimeString()} - ${new Date(booking.endTime).toLocaleTimeString()}</p>
-                <p><strong>Duration:</strong> ${booking.duration} minutes</p>
-              </div>
-              <p>We're looking forward to meeting with you!</p>
-              <p>If you need to cancel or reschedule, please contact ${host.displayName} directly.</p>
-              <p>Thank you for using Schedulo!</p>
-            </div>
-            <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #6b7280;">
-              <p>Powered by Schedulo</p>
-            </div>
-          </div>
-        `;
-        break;
-      
-      case 'cancelled':
-        subject = `Booking Cancelled: Your appointment with ${host.displayName}`;
-        message = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="background-color: #f9fafb; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
-              <h1 style="color: #dc2626; margin: 0;">Your booking has been cancelled</h1>
-            </div>
-            <div style="padding: 20px; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px;">
-              <p>Hello ${guest.name},</p>
-              <div style="background-color: #FEE2E2; color: #991B1B; padding: 8px 15px; border-radius: 4px; display: inline-block; margin-bottom: 15px; font-weight: bold; border: 1px solid #EF4444;">
-                CANCELLED
-              </div>
-              <p>We're sorry to inform you that your booking with ${host.displayName} for ${new Date(booking.startTime).toLocaleDateString()} at ${new Date(booking.startTime).toLocaleTimeString()} has been cancelled.</p>
-              <p>If you would like to schedule another appointment, please visit the booking page again.</p>
-              <p>Thank you for using Schedulo!</p>
-            </div>
-            <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #6b7280;">
-              <p>Powered by Schedulo</p>
-            </div>
-          </div>
-        `;
-        break;
-      
-      case 'completed':
-        subject = `Booking Completed: Your appointment with ${host.displayName}`;
-        message = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="background-color: #f9fafb; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
-              <h1 style="color: #1e40af; margin: 0;">Your booking has been completed</h1>
-            </div>
-            <div style="padding: 20px; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px;">
-              <p>Hello ${guest.name},</p>
-              <div style="background-color: #DBEAFE; color: #1E40AF; padding: 8px 15px; border-radius: 4px; display: inline-block; margin-bottom: 15px; font-weight: bold; border: 1px solid #3B82F6;">
-                COMPLETED
-              </div>
-              <p>Thank you for meeting with ${host.displayName} on ${new Date(booking.startTime).toLocaleDateString()}.</p>
-              <p>We hope everything went well with your meeting!</p>
-              <p>If you would like to schedule another appointment, please visit the booking page again.</p>
-              <p>Thank you for using Schedulo!</p>
-            </div>
-            <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #6b7280;">
-              <p>Powered by Schedulo</p>
-            </div>
-          </div>
-        `;
-        break;
-      
-      default:
-        subject = `Booking Update: Your appointment with ${host.displayName}`;
-        message = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="background-color: #f9fafb; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
-              <h1 style="color: #374151; margin: 0;">Your booking status has been updated</h1>
-            </div>
-            <div style="padding: 20px; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px;">
-              <p>Hello ${guest.name},</p>
-              <p>The status of your booking with ${host.displayName} for ${new Date(booking.startTime).toLocaleDateString()} at ${new Date(booking.startTime).toLocaleTimeString()} has been updated to: ${booking.status}.</p>
-              <p>Thank you for using Schedulo!</p>
-            </div>
-            <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #6b7280;">
-              <p>Powered by Schedulo</p>
-            </div>
-          </div>
-        `;
+    if (typeof booking.endTime === 'string') {
+      booking.endTime = new Date(booking.endTime);
     }
-    
-    // Send email
-    const mailOptions = {
-      from: process.env.SMTP_USER,
-      to: guest.email,
-      subject,
-      html: message,
+
+    // Validate dates
+    if (isNaN(booking.startTime.getTime()) || isNaN(booking.endTime.getTime())) {
+      return NextResponse.json(
+        { error: 'Invalid date format in booking information' },
+        { status: 400 }
+      );
+    }
+
+    // Send status update email to the guest
+    const emailResult: EmailResult = await sendBookingStatusUpdateEmail(host, guest, booking);
+
+    // Build response
+    const response = { 
+      success: emailResult.success,
+      details: {
+        guest: {
+          email: guest.email,
+          sent: emailResult.success,
+          messageId: emailResult.messageId || null,
+          error: emailResult.error ? String(emailResult.error) : null
+        }
+      }
     };
-    
-    await transporter.sendMail(mailOptions);
-    
-    return NextResponse.json({ success: true });
+
+    // Return appropriate status code
+    if (response.success) {
+      return NextResponse.json(response);
+    } else {
+      return NextResponse.json(
+        { 
+          error: 'Failed to send status update email',
+          details: response.details
+        },
+        { status: 500 }
+      );
+    }
   } catch (error) {
-    console.error('Error sending status update email:', error);
+    console.error('Error in status update email API:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to send email' },
+      { error: 'Internal server error', details: String(error) },
       { status: 500 }
     );
   }
-}
+};
