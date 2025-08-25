@@ -365,14 +365,14 @@ export function Groups() {
                     className="text-white border-white/20 hover:bg-white/20"
                     disabled={!selectedGroup}
                   >
-                    <CalendarDaysIcon className="h-4 w-4 mr-2" />
+                    <CalendarDaysIcon className="h-4 w-4 mr-2 " />
                     Availability
                   </Button>
                   <Button
                     onClick={() => setOpen(true)}
-                    className="bg-white text-blue-600 hover:bg-blue-50"
+                    className="bg-blue-600 text-white hover:bg-blue-700"
                   >
-                    <PlusIcon className="h-4 w-4 mr-2" />
+                    <PlusIcon className="h-4 w-4 mr-2 text-white" />
                     Create Group
                   </Button>
                 </div>
