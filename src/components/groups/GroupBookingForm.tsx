@@ -249,6 +249,9 @@ export default function GroupBookingForm({
                 onChange={(e) => handleInputChange('meetingLink', e.target.value)}
                 placeholder="e.g., https://zoom.us/j/123456789"
               />
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                💡 If left empty, a Jitsi Meet video call link will be automatically generated for your group meeting
+              </p>
             </div>
 
             <div>

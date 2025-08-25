@@ -1,5 +1,6 @@
 import { collection, addDoc, serverTimestamp, doc, updateDoc, getDocs, getDoc, query, where } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
+import { jitsiMeetService } from '@/lib/jitsiMeet';
 import {
   GroupBooking,
   GroupMeetingRequest,
@@ -168,13 +169,13 @@ export class GroupBookingService {
         ...request.requiredAttendees?.map(email => ({
           email,
           name: email.split('@')[0], // Default name from email
-          status: AttendeeStatus.PENDING
+          status: AttendeeStatus.ACCEPTED
           // notes field omitted - will be added only when there are actual notes
         })) || [],
         ...request.optionalAttendees?.map(email => ({
           email,
           name: email.split('@')[0],
-          status: AttendeeStatus.PENDING
+          status: AttendeeStatus.ACCEPTED
           // notes field omitted - will be added only when there are actual notes
         })) || []
       ];
@@ -190,7 +191,7 @@ export class GroupBookingService {
         endTime,
         duration: request.duration,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        status: GroupBookingStatus.PENDING,
+        status: GroupBookingStatus.CONFIRMED,
         attendees,
         meetingType: request.meetingType,
         createdAt: new Date(),
@@ -212,6 +213,34 @@ export class GroupBookingService {
 
       if (request.agenda && request.agenda.trim()) {
         bookingData.agenda = request.agenda.trim();
+      }
+
+      // Generate Jitsi Meet room for the group meeting
+      console.log('🎥 Generating Jitsi Meet room for group meeting...');
+      try {
+        const tempGroupBooking = {
+          id: generateUUID(), // Use temporary UUID for room generation
+          guestName: `Group: ${request.title}`,
+          startTime: request.preferredDate,
+          userId: request.organizerEmail || auth.currentUser?.uid || 'unknown'
+        };
+        
+        const jitsiRoom = jitsiMeetService.generateMeetingRoom(tempGroupBooking);
+        console.log('✅ Jitsi Meet room generated for group:', jitsiRoom);
+        
+        // Add Jitsi Meet details to booking data
+        bookingData.jitsiMeetUrl = jitsiRoom.meetingUrl;
+        bookingData.jitsiRoomName = jitsiRoom.roomName;
+        if (jitsiRoom.password) {
+          bookingData.jitsiPassword = jitsiRoom.password;
+        }
+        
+        // Also set as meetingLink for backward compatibility
+        bookingData.meetingLink = jitsiRoom.meetingUrl;
+        
+      } catch (jitsiError) {
+        console.error('❌ Error generating Jitsi Meet link for group:', jitsiError);
+        // Continue with booking creation even if Jitsi link generation fails
       }
 
       // Clean data and add to Firestore
@@ -265,9 +294,47 @@ export class GroupBookingService {
 
       const docRef = await addDoc(collection(db, 'groupBookings'), dataToSave);
 
-      // Create meeting invitations
+      // Now regenerate Jitsi Meet link with the actual booking ID for better uniqueness
+      console.log('🔄 Updating Jitsi Meet room with actual booking ID...');
+      try {
+        const actualGroupBooking = {
+          id: docRef.id,
+          guestName: `Group: ${request.title}`,
+          startTime: request.preferredDate,
+          userId: request.organizerEmail || auth.currentUser?.uid || 'unknown'
+        };
+        
+        const finalJitsiRoom = jitsiMeetService.generateMeetingRoom(actualGroupBooking);
+        
+        // Update the booking document with the final Jitsi room details
+        await updateDoc(docRef, {
+          jitsiMeetUrl: finalJitsiRoom.meetingUrl,
+          jitsiRoomName: finalJitsiRoom.roomName,
+          meetingLink: finalJitsiRoom.meetingUrl,
+          ...(finalJitsiRoom.password && { jitsiPassword: finalJitsiRoom.password })
+        });
+        
+        // Update local bookingData for email sending
+        bookingData.jitsiMeetUrl = finalJitsiRoom.meetingUrl;
+        bookingData.jitsiRoomName = finalJitsiRoom.roomName;
+        bookingData.meetingLink = finalJitsiRoom.meetingUrl;
+        if (finalJitsiRoom.password) {
+          bookingData.jitsiPassword = finalJitsiRoom.password;
+        }
+        
+        console.log('✅ Jitsi Meet room updated with actual booking ID:', finalJitsiRoom);
+      } catch (jitsiUpdateError) {
+        console.error('⚠️ Error updating Jitsi Meet link with actual booking ID:', jitsiUpdateError);
+        // Continue with the process - we still have the initial Jitsi link
+      }
+
+      // Create meeting invitations with email notifications
       console.log('🎫 Creating meeting invitations...');
-      await this.createMeetingInvitations(docRef.id, attendees.map(a => a.email));
+      await this.createMeetingInvitations(
+        docRef.id, 
+        attendees.map(a => a.email),
+        bookingData // Pass the complete booking data including Jitsi details
+      );
       console.log('✅ Meeting invitations created successfully');
 
       return docRef.id;
@@ -280,7 +347,11 @@ export class GroupBookingService {
   /**
    * Create meeting invitations for attendees
    */
-  static async createMeetingInvitations(bookingId: string, attendeeEmails: string[]): Promise<void> {
+  static async createMeetingInvitations(
+    bookingId: string, 
+    attendeeEmails: string[], 
+    bookingData?: any
+  ): Promise<void> {
     try {
       console.log(`🎫 Creating invitations for booking ${bookingId}`);
       console.log(`📧 Attendee emails:`, attendeeEmails);
@@ -297,6 +368,29 @@ export class GroupBookingService {
 
       if (validEmails.length === 0) {
         throw new Error('No valid email addresses provided');
+      }
+
+      // If bookingData is provided, send email notifications
+      if (bookingData) {
+        console.log('📧 Sending group meeting email notifications...');
+        try {
+          await this.sendGroupMeetingEmails(
+            bookingId,
+            bookingData.title || 'Group Meeting',
+            bookingData.startTime,
+            bookingData.endTime,
+            validEmails,
+            bookingData.organizerName || 'Organizer',
+            bookingData.organizerEmail || '',
+            bookingData.description || bookingData.agenda,
+            bookingData.location,
+            bookingData.meetingLink || bookingData.jitsiMeetUrl
+          );
+          console.log('✅ Group meeting emails sent successfully');
+        } catch (emailError) {
+          console.error('⚠️ Error sending group meeting emails:', emailError);
+          // Continue with invitation creation even if emails fail
+        }
       }
 
       const invitations = validEmails.map(email => ({

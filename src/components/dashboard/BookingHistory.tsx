@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
-import { collection, query, where, getDocs, orderBy, doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, doc, updateDoc, deleteDoc, getDoc, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { googleCalendarService } from '@/lib/googleCalendar';
 import { jitsiMeetService } from '@/lib/jitsiMeet';
 import { reminderService } from '@/lib/reminderService';
 import { Booking, BookingStatus } from '@/types';
+import { GroupBooking, GroupBookingStatus } from '@/types/groupBooking';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import {
@@ -30,6 +31,7 @@ import {
   PencilIcon,
   TrashIcon,
   ClipboardDocumentIcon,
+  UserGroupIcon,
 } from '@heroicons/react/24/outline';
 import { CheckCircleIcon as CheckCircleIconSolid, XCircleIcon as XCircleIconSolid } from '@heroicons/react/24/solid';
 
@@ -87,6 +89,7 @@ interface BookingWithDetails extends Booking {
 }
 
 type FilterType = 'all' | 'upcoming' | 'past' | 'pending' | 'confirmed' | 'cancelled' | 'completed';
+type BookingTypeFilter = 'all' | 'individual' | 'group';
 type SortType = 'newest' | 'oldest' | 'date-asc' | 'date-desc';
 
 export function BookingHistory() {
@@ -97,6 +100,7 @@ export function BookingHistory() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('all');
+  const [selectedBookingType, setSelectedBookingType] = useState<BookingTypeFilter>('all');
   const [selectedSort, setSelectedSort] = useState<SortType>('newest');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<BookingWithDetails | null>(null);
@@ -138,7 +142,88 @@ export function BookingHistory() {
 
   useEffect(() => {
     filterAndSortBookings();
-  }, [bookings, searchTerm, selectedFilter, selectedSort]);
+  }, [bookings, searchTerm, selectedFilter, selectedBookingType, selectedSort]);
+
+  // Helper function to convert GroupBookingStatus to BookingStatus
+  const convertGroupBookingStatus = (groupStatus: GroupBookingStatus): BookingStatus => {
+    switch (groupStatus) {
+      case GroupBookingStatus.PENDING:
+        return BookingStatus.PENDING;
+      case GroupBookingStatus.CONFIRMED:
+        return BookingStatus.CONFIRMED;
+      case GroupBookingStatus.CANCELLED:
+        return BookingStatus.CANCELLED;
+      case GroupBookingStatus.COMPLETED:
+        return BookingStatus.COMPLETED;
+      default:
+        return BookingStatus.PENDING;
+    }
+  };
+
+  // Helper function to transform group bookings (similar to transformBooking but for group context)
+  const transformGroupBooking = (booking: Booking, isOrganizer: boolean): BookingWithDetails => {
+    const now = new Date();
+    const isUpcoming = booking.startTime > now;
+    const isPast = booking.endTime < now;
+    const canCancel = isUpcoming && booking.status !== BookingStatus.CANCELLED;
+    const canReschedule = isUpcoming && booking.status === BookingStatus.CONFIRMED;
+
+    const statusConfig = {
+      [BookingStatus.PENDING]: {
+        color: 'text-yellow-600 bg-yellow-50 border-yellow-200',
+        icon: ExclamationTriangleIcon,
+      },
+      [BookingStatus.CONFIRMED]: {
+        color: 'text-green-600 bg-green-50 border-green-200',
+        icon: CheckCircleIcon,
+      },
+      [BookingStatus.CANCELLED]: {
+        color: 'text-red-600 bg-red-50 border-red-200',
+        icon: XCircleIcon,
+      },
+      [BookingStatus.COMPLETED]: {
+        color: 'text-blue-600 bg-blue-50 border-blue-200',
+        icon: CheckCircleIcon,
+      },
+    };
+
+    return {
+      ...booking,
+      isUpcoming,
+      isPast,
+      canCancel,
+      canReschedule,
+      isHost: isOrganizer,
+      isGuest: !isOrganizer,
+      formattedDate: booking.startTime.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      }),
+      formattedTime: `${booking.startTime.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      })} - ${booking.endTime.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      })}`,
+      formattedDateTime: `${booking.startTime.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+      })} at ${booking.startTime.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      })}`,
+      durationString: `${booking.duration} min`,
+      statusColor: statusConfig[booking.status].color,
+      statusIcon: statusConfig[booking.status].icon,
+    };
+  };
 
   const loadBookings = async () => {
     if (!user || !userProfile) return;
@@ -158,6 +243,11 @@ export function BookingHistory() {
         email: userProfile.email,
         displayName: userProfile.displayName
       });
+
+      // SECURITY MODEL:
+      // 1. Individual bookings: Show where I'm host (userId) or guest (guestEmail)
+      // 2. Group bookings: Show where I'm organizer (organizerEmail) or attendee (in attendees array)
+      // This ensures users only see bookings they're involved in
 
       // IMPORTANT: Use user.uid for consistency with BookingForm
       // BookingForm saves userId as user.id, so we need to match that
@@ -181,13 +271,33 @@ export function BookingHistory() {
         orderBy('createdAt', 'desc')
       );
 
-      const [hostBookingsSnapshot, guestBookingsSnapshot] = await Promise.all([
+      // Query 3: Group bookings where I'm the organizer
+      const organizerGroupBookingsQuery = query(
+        collection(db, 'groupBookings'),
+        where('organizerEmail', '==', user.email),
+        orderBy('createdAt', 'desc')
+      );
+
+      // Query 4: For attendee group bookings, we need to use array-contains-any but it's limited
+      // Since we can't efficiently query nested array objects, we'll limit the results and filter
+      const allGroupBookingsQuery = query(
+        collection(db, 'groupBookings'),
+        orderBy('createdAt', 'desc'),
+        // Limit to recent bookings to avoid fetching too much data
+        limit(100)
+      );
+
+      const [hostBookingsSnapshot, guestBookingsSnapshot, organizerGroupBookingsSnapshot, allGroupBookingsSnapshot] = await Promise.all([
         getDocs(hostBookingsQuery),
-        getDocs(guestBookingsQuery)
+        getDocs(guestBookingsQuery),
+        getDocs(organizerGroupBookingsQuery),
+        getDocs(allGroupBookingsQuery)
       ]);
 
       console.log('Host bookings found:', hostBookingsSnapshot.docs.length);
       console.log('Guest bookings found:', guestBookingsSnapshot.docs.length);
+      console.log('Organizer group bookings found:', organizerGroupBookingsSnapshot.docs.length);
+      console.log('All group bookings found:', allGroupBookingsSnapshot.docs.length);
       
       // Additional debugging
       console.log('User ID being used for host query:', currentUserId);
@@ -251,14 +361,140 @@ export function BookingHistory() {
         return transformBooking(booking, false); // false indicates I'm the guest
       });
 
+      // Process organizer group bookings (where I organized the group meeting)
+      const organizerGroupBookings = organizerGroupBookingsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        console.log('Processing organizer group booking:', {
+          id: doc.id,
+          title: data.title,
+          organizerEmail: data.organizerEmail,
+          attendees: data.attendees?.length || 0,
+          currentUserEmail: user.email,
+          isCurrentUserOrganizer: data.organizerEmail === user.email
+        });
+        
+        // Security check: Ensure I'm actually the organizer
+        if (data.organizerEmail !== user.email) {
+          console.error('Security violation: Non-organizer trying to access organizer group booking', {
+            bookingId: doc.id,
+            organizerEmail: data.organizerEmail,
+            currentUserEmail: user.email
+          });
+          return [];
+        }
+        
+        // Convert group booking to individual booking format for each attendee
+        return data.attendees?.map((attendee: any) => {
+          const groupBooking: Booking = {
+            id: `${doc.id}-${attendee.email}`, // Unique ID for each attendee
+            userId: currentUserId, // I'm the organizer/host
+            guestName: attendee.name,
+            guestEmail: attendee.email,
+            guestNotes: data.description || '',
+            startTime: data.startTime?.toDate() || new Date(),
+            endTime: data.endTime?.toDate() || new Date(),
+            duration: data.duration,
+            status: convertGroupBookingStatus(data.status),
+            timezone: data.timezone,
+            createdAt: data.createdAt?.toDate() || new Date(),
+            updatedAt: data.updatedAt?.toDate() || new Date(),
+            // Group booking specific fields
+            groupBookingId: doc.id,
+            groupBookingTitle: data.title,
+            isGroupBooking: true,
+            location: data.location,
+            agenda: data.agenda,
+            meetingLink: data.meetingLink
+          } as Booking;
+
+          return transformGroupBooking(groupBooking, true); // true indicates I'm the organizer
+        }) || [];
+      }).flat();
+
+      // Process attendee group bookings (where I'm an attendee in group meetings)
+      const attendeeGroupBookings = allGroupBookingsSnapshot.docs
+        .filter(doc => {
+          const data = doc.data();
+          // Security check: Only include bookings where I'm an attendee but not the organizer
+          const isOrganizer = data.organizerEmail === user.email;
+          const isAttendee = data.attendees?.some((attendee: any) => 
+            attendee.email === user.email
+          );
+          
+          const shouldInclude = !isOrganizer && isAttendee;
+          
+          if (shouldInclude) {
+            console.log('Including attendee group booking:', {
+              id: doc.id,
+              title: data.title,
+              organizerEmail: data.organizerEmail,
+              myEmail: user.email,
+              attendeesCount: data.attendees?.length || 0
+            });
+          }
+          
+          return shouldInclude;
+        })
+        .map(doc => {
+          const data = doc.data();
+          console.log('Attendee group booking data:', {
+            id: doc.id,
+            title: data.title,
+            organizerEmail: data.organizerEmail,
+            myEmail: user.email
+          });
+          
+          // Find myself in the attendees list
+          const myAttendeeInfo = data.attendees?.find((attendee: any) => attendee.email === user.email);
+          
+          if (myAttendeeInfo) {
+            const groupBooking: Booking = {
+              id: `${doc.id}-${user.email}`, // Unique ID for my attendance
+              userId: data.organizerEmail, // The organizer is the "host"
+              guestName: myAttendeeInfo.name,
+              guestEmail: user.email,
+              guestNotes: data.description || '',
+              startTime: data.startTime?.toDate() || new Date(),
+              endTime: data.endTime?.toDate() || new Date(),
+              duration: data.duration,
+              status: convertGroupBookingStatus(data.status),
+              timezone: data.timezone,
+              createdAt: data.createdAt?.toDate() || new Date(),
+              updatedAt: data.updatedAt?.toDate() || new Date(),
+              // Group booking specific fields
+              groupBookingId: doc.id,
+              groupBookingTitle: data.title,
+              isGroupBooking: true,
+              location: data.location,
+              agenda: data.agenda,
+              meetingLink: data.meetingLink
+            } as Booking;
+
+            return transformGroupBooking(groupBooking, false); // false indicates I'm an attendee
+          }
+          return null;
+        })
+        .filter(Boolean) as BookingWithDetails[];
+
       // Combine and deduplicate bookings (in case user booked with themselves)
-      const allBookings = [...hostBookings, ...guestBookings];
+      const allBookings = [...hostBookings, ...guestBookings, ...organizerGroupBookings, ...attendeeGroupBookings];
       const uniqueBookings = allBookings.filter((booking, index, self) => 
         index === self.findIndex(b => b.id === booking.id)
       );
 
       // Sort by creation date (newest first)
       uniqueBookings.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+      console.log('Final booking summary for user:', {
+        userEmail: user.email,
+        totalBookings: uniqueBookings.length,
+        hostBookings: hostBookings.length,
+        guestBookings: guestBookings.length,
+        organizerGroupBookings: organizerGroupBookings.length,
+        attendeeGroupBookings: attendeeGroupBookings.length,
+        groupBookings: uniqueBookings.filter(b => b.isGroupBooking).length,
+        individualBookings: uniqueBookings.filter(b => !b.isGroupBooking).length
+      });
 
       setBookings(uniqueBookings);
     } catch (error) {
@@ -345,7 +581,10 @@ export function BookingHistory() {
       filtered = filtered.filter(booking =>
         booking.guestName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         booking.guestEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        booking.guestNotes?.toLowerCase().includes(searchTerm.toLowerCase())
+        booking.guestNotes?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        booking.groupBookingTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        booking.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        booking.agenda?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -369,6 +608,17 @@ export function BookingHistory() {
       case 'completed':
         filtered = filtered.filter(booking => booking.status === BookingStatus.COMPLETED);
         break;
+    }
+
+    // Apply booking type filter
+    switch (selectedBookingType) {
+      case 'individual':
+        filtered = filtered.filter(booking => !booking.isGroupBooking);
+        break;
+      case 'group':
+        filtered = filtered.filter(booking => booking.isGroupBooking);
+        break;
+      // 'all' case doesn't need filtering
     }
 
     // Apply sorting
@@ -860,6 +1110,8 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
       confirmed: bookings.filter(b => b.status === BookingStatus.CONFIRMED).length,
       cancelled: bookings.filter(b => b.status === BookingStatus.CANCELLED).length,
       completed: bookings.filter(b => b.status === BookingStatus.COMPLETED).length,
+      individual: bookings.filter(b => !b.isGroupBooking).length,
+      group: bookings.filter(b => b.isGroupBooking).length,
     };
     return counts;
   };
@@ -962,6 +1214,16 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
               <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 rounded-full">
                 {filteredBookings.length} of {bookings.length}
               </span>
+              {selectedBookingType !== 'all' && (
+                <span className="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 rounded-full">
+                  {selectedBookingType === 'group' ? 'Group Meetings' : 'Individual Meetings'}
+                </span>
+              )}
+              {selectedFilter !== 'all' && (
+                <span className="px-2 py-1 text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300 rounded-full">
+                  {selectedFilter.charAt(0).toUpperCase() + selectedFilter.slice(1)}
+                </span>
+              )}
             </div>
             <p className="text-slate-600 dark:text-slate-400 mt-1">
               View, approve, and manage your scheduling calendar. Only you can accept or decline booking requests.
@@ -1031,7 +1293,7 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
             {/* Filters */}
             {showFilters && (
               <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {/* Status Filter */}
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -1049,6 +1311,22 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
                       <option value="confirmed">Confirmed ({filterCounts.confirmed})</option>
                       <option value="cancelled">Cancelled ({filterCounts.cancelled})</option>
                       <option value="completed">Completed ({filterCounts.completed})</option>
+                    </select>
+                  </div>
+
+                  {/* Booking Type Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Filter by Type
+                    </label>
+                    <select
+                      value={selectedBookingType}
+                      onChange={(e) => setSelectedBookingType(e.target.value as BookingTypeFilter)}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-slate-800 dark:text-white"
+                    >
+                      <option value="all">All Types ({filterCounts.all})</option>
+                      <option value="individual">Individual ({filterCounts.individual})</option>
+                      <option value="group">Group ({filterCounts.group})</option>
                     </select>
                   </div>
 
@@ -1083,19 +1361,20 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
                   <CalendarDaysIcon className="h-12 w-12 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
-                  {searchTerm || selectedFilter !== 'all' ? 'No bookings found' : 'No bookings yet'}
+                  {searchTerm || selectedFilter !== 'all' || selectedBookingType !== 'all' ? 'No bookings found' : 'No bookings yet'}
                 </h3>
                 <p className="text-slate-600 dark:text-slate-400 mb-4">
-                  {searchTerm || selectedFilter !== 'all' 
+                  {searchTerm || selectedFilter !== 'all' || selectedBookingType !== 'all'
                     ? 'Try adjusting your search or filters'
                     : 'Your bookings will appear here once customers start booking with you'
                   }
                 </p>
-                {searchTerm || selectedFilter !== 'all' ? (
+                {searchTerm || selectedFilter !== 'all' || selectedBookingType !== 'all' ? (
                   <button
                     onClick={() => {
                       setSearchTerm('');
                       setSelectedFilter('all');
+                      setSelectedBookingType('all');
                     }}
                     className="text-blue-600 hover:text-blue-700 font-medium"
                   >
@@ -1118,7 +1397,10 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
                                   booking.status === BookingStatus.COMPLETED ? '#3b82f6' : '#6b7280',
                   animationDelay: `${index * 50}ms`,
                   opacity: 0,
-                  animation: 'fadeIn 0.5s ease-out forwards'
+                  animationName: 'fadeIn',
+                  animationDuration: '0.5s',
+                  animationTimingFunction: 'ease-out',
+                  animationFillMode: 'forwards'
                 }}
               >
                 <CardContent className="p-6">
@@ -1135,6 +1417,11 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
                             <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
                               {booking.guestName}
                             </h3>
+                            {booking.isGroupBooking && (
+                              <span className="px-2 py-0.5 bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400 text-xs font-medium rounded-full">
+                                Group Meeting
+                              </span>
+                            )}
                             {booking.isGuest && (
                               <span className="px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 text-xs font-medium rounded-full">
                                 Your booking
@@ -1150,6 +1437,12 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
                             <EnvelopeIcon className="h-4 w-4" />
                             <span>{booking.guestEmail}</span>
                           </div>
+                          {booking.isGroupBooking && booking.groupBookingTitle && (
+                            <div className="flex items-center space-x-2 text-sm text-purple-600 dark:text-purple-400 mt-1">
+                              <UserGroupIcon className="h-4 w-4" />
+                              <span>{booking.groupBookingTitle}</span>
+                            </div>
+                          )}
                         </div>
                         <div className={`px-3 py-1 rounded-full text-xs font-medium border ${booking.statusColor}`}>
                           <booking.statusIcon className="h-3 w-3 inline mr-1" />
@@ -1176,6 +1469,22 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
                         <div className="mt-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
                           <p className="text-sm text-slate-700 dark:text-slate-300">
                             <strong>Notes:</strong> {booking.guestNotes}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {booking.isGroupBooking && booking.agenda && (
+                        <div className="mt-3 p-3 bg-purple-50 dark:bg-purple-900/10 rounded-lg border border-purple-200 dark:border-purple-800/30">
+                          <p className="text-sm text-purple-700 dark:text-purple-300">
+                            <strong>Meeting Agenda:</strong> {booking.agenda}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {booking.isGroupBooking && booking.location && (
+                        <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-200 dark:border-blue-800/30">
+                          <p className="text-sm text-blue-700 dark:text-blue-300">
+                            <strong>Meeting Location:</strong> {booking.location}
                           </p>
                         </div>
                       )}
@@ -1231,17 +1540,24 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
                       </button>
                     )}
                     
-                    {/* Join Video Call button for confirmed bookings with Jitsi Meet URL */}
-                    {booking.status === BookingStatus.CONFIRMED && booking.jitsiMeetUrl && (
+                    {/* Join Video Call button for confirmed bookings with Jitsi Meet URL or Group Meeting Link */}
+                    {booking.status === BookingStatus.CONFIRMED && (booking.jitsiMeetUrl || (booking.isGroupBooking && booking.meetingLink)) && (
                       <button
-                        onClick={() => window.open(booking.jitsiMeetUrl, '_blank', 'noopener,noreferrer')}
+                        onClick={() => {
+                          const meetingUrl = booking.jitsiMeetUrl || booking.meetingLink;
+                          if (meetingUrl) {
+                            window.open(meetingUrl, '_blank', 'noopener,noreferrer');
+                          }
+                        }}
                         className="flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-md transition-colors dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40"
-                        title="Join the video call for this meeting"
+                        title={booking.isGroupBooking ? "Join the group meeting" : "Join the video call for this meeting"}
                       >
                         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                         </svg>
-                        <span className="text-xs font-medium">Join Video Call</span>
+                        <span className="text-xs font-medium">
+                          {booking.isGroupBooking ? 'Join Group Meeting' : 'Join Video Call'}
+                        </span>
                       </button>
                     )}
                     

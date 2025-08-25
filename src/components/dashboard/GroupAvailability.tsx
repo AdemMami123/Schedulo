@@ -145,7 +145,7 @@ export default function GroupAvailability({ group, profiles, usersWithProfiles =
       );
 
       // Show success message and return to availability view
-      alert('Meeting scheduled successfully! Invitations have been sent to all members.');
+      alert('Group meeting confirmed and scheduled successfully! All attendees have been automatically confirmed and invitations sent.');
       setViewMode('grid');
     } catch (error) {
       console.error('Error creating booking:', error);

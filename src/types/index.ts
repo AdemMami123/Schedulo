@@ -75,6 +75,13 @@ export interface Booking {
   jitsiPassword?: string;
   createdAt: Date;
   updatedAt: Date;
+  // Group booking fields
+  groupBookingId?: string;
+  groupBookingTitle?: string;
+  isGroupBooking?: boolean;
+  location?: string;
+  agenda?: string;
+  meetingLink?: string;
 }
 
 export enum BookingStatus {

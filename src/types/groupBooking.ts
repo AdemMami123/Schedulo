@@ -4,6 +4,8 @@ export interface GroupBooking {
   id: string;
   groupId: string;
   organizerId: string; // User who organized the meeting
+  organizerEmail?: string; // Organizer's email
+  organizerName?: string; // Organizer's name
   title: string;
   description?: string;
   startTime: Date;
@@ -17,6 +19,10 @@ export interface GroupBooking {
   location?: string;
   meetingLink?: string; // For virtual meetings
   agenda?: string;
+  // Jitsi Meet integration fields
+  jitsiMeetUrl?: string;
+  jitsiRoomName?: string;
+  jitsiPassword?: string;
   createdAt: Date;
   updatedAt: Date;
   googleCalendarEventId?: string;
