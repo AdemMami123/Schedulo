@@ -175,17 +175,17 @@ export default function ProfilePage() {
   const canSave = hasUsernameChanged && !usernameError && !isValidating;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 lg:py-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 mobile-safe-area">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Profile Settings</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Profile Settings</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm sm:text-base">
             Manage your account settings and booking preferences
           </p>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Profile Information */}
           <Card>
             <CardHeader>
@@ -196,39 +196,39 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* User Avatar and Basic Info */}
-              <div className="flex items-center space-x-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
                 {user.photoURL ? (
                   <img
                     src={user.photoURL}
                     alt={user.displayName || 'User'}
-                    className="w-16 h-16 rounded-full ring-2 ring-gray-200 dark:ring-gray-600"
+                    className="w-14 h-14 sm:w-16 sm:h-16 rounded-full ring-2 ring-gray-200 dark:ring-gray-600 self-center sm:self-auto"
                   />
                 ) : (
-                  <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                    <UserIcon className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center self-center sm:self-auto">
+                    <UserIcon className="w-7 h-7 sm:w-8 sm:h-8 text-gray-400 dark:text-gray-500" />
                   </div>
                 )}
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                <div className="text-center sm:text-left">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
                     {user.displayName}
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-400">{user.email}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 break-all sm:break-normal">{user.email}</p>
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                     Timezone: {userProfile.timezone}
                   </p>
                 </div>
               </div>
 
               {/* Username Section */}
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="space-y-4">
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4 sm:pt-6">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
+                  <div className="space-y-3 sm:space-y-4">
                     <div>
                       <label htmlFor="username" className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                         Username
                       </label>
                       <div className="flex items-center space-x-2">
-                        <span className="text-gray-500 dark:text-gray-400">@</span>
+                        <span className="text-gray-500 dark:text-gray-400 text-sm sm:text-base">@</span>
                         <Input
                           type="text"
                           id="username"
@@ -237,7 +237,7 @@ export default function ProfilePage() {
                           error={usernameError}
                           placeholder="Enter your username"
                           disabled={saving}
-                          className="flex-1"
+                          className="flex-1 text-mobile-responsive"
                         />
                         {isValidating && (
                           <div className="flex-shrink-0">
@@ -248,16 +248,16 @@ export default function ProfilePage() {
                       {usernameError && (
                         <p className="mt-1 text-sm text-red-600 dark:text-red-400">{usernameError}</p>
                       )}
-                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                      <p className="mt-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                         Your username creates your unique booking URL. Use only lowercase letters, numbers, underscores, and hyphens.
                       </p>
                     </div>
 
-                    <div className="flex items-center space-x-3">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
                       <Button
                         onClick={handleSaveUsername}
                         disabled={!canSave || saving}
-                        className="min-w-[100px]"
+                        className="min-w-[100px] touch-target"
                       >
                         {saving ? <LoadingSpinner size="sm" /> : 'Save Changes'}
                       </Button>
@@ -269,6 +269,7 @@ export default function ProfilePage() {
                             setUsernameError('');
                           }}
                           disabled={saving}
+                          className="touch-target"
                         >
                           Cancel
                         </Button>
@@ -277,7 +278,7 @@ export default function ProfilePage() {
                   </div>
 
                   {/* Booking URL Preview */}
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                         Your Booking URL
@@ -286,7 +287,7 @@ export default function ProfilePage() {
                         <div className="space-y-3">
                           <div className="flex items-center space-x-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                             <LinkIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                            <span className="text-sm text-gray-700 dark:text-gray-300 truncate flex-1">
+                            <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 truncate flex-1 font-mono">
                               {typeof window !== 'undefined' ? window.location.origin : ''}/schedule/{username || 'your-username'}
                             </span>
                             <Button
@@ -294,7 +295,7 @@ export default function ProfilePage() {
                               size="sm"
                               onClick={copyBookingLink}
                               disabled={!userProfile.username}
-                              className="flex-shrink-0"
+                              className="flex-shrink-0 touch-target tap-highlight-none"
                             >
                               {copied ? (
                                 <CheckIcon className="h-4 w-4 text-green-500" />
@@ -305,12 +306,12 @@ export default function ProfilePage() {
                           </div>
                           
                           {userProfile.username && (
-                            <div className="flex space-x-2">
+                            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => window.open(bookingUrl, '_blank')}
-                                className="flex items-center gap-1"
+                                className="flex items-center justify-center gap-1 touch-target"
                               >
                                 <LinkIcon className="h-3 w-3" />
                                 Preview Page
@@ -319,7 +320,7 @@ export default function ProfilePage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={copyBookingLink}
-                                className="flex items-center gap-1"
+                                className="flex items-center justify-center gap-1 touch-target"
                               >
                                 {copied ? (
                                   <CheckIcon className="h-3 w-3 text-green-500" />
@@ -332,7 +333,7 @@ export default function ProfilePage() {
                           )}
                         </div>
                       ) : (
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                           Set a username to get your booking URL
                         </p>
                       )}
@@ -397,25 +398,25 @@ export default function ProfilePage() {
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
                 <Button
                   variant="outline"
                   onClick={() => window.location.href = '/dashboard/settings'}
-                  className="justify-start"
+                  className="justify-start touch-target tap-highlight-none text-sm"
                 >
                   Booking Settings
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => window.location.href = '/dashboard/availability'}
-                  className="justify-start"
+                  className="justify-start touch-target tap-highlight-none text-sm"
                 >
                   Set Availability
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => window.location.href = '/dashboard/history'}
-                  className="justify-start"
+                  className="justify-start touch-target tap-highlight-none text-sm"
                 >
                   View Bookings
                 </Button>

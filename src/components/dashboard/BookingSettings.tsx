@@ -491,14 +491,14 @@ export function BookingSettings() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
             Booking Settings
           </h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-2">
+          <p className="text-slate-600 dark:text-slate-400 mt-1 sm:mt-2 text-sm sm:text-base">
             Configure your booking preferences and customize your booking page
           </p>
         </div>
@@ -506,7 +506,7 @@ export function BookingSettings() {
           onClick={handleSave}
           disabled={saving}
           className={cn(
-            "flex items-center space-x-2 px-6 py-3 rounded-xl font-medium transition-all duration-200",
+            "flex items-center justify-center gap-2 px-4 sm:px-6 py-3 rounded-xl font-medium transition-all duration-200 min-h-[44px] touch-target text-sm sm:text-base",
             saving
               ? "bg-slate-400 text-white cursor-not-allowed"
               : "bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 hover:shadow-lg hover:scale-105"
@@ -519,7 +519,7 @@ export function BookingSettings() {
             </>
           ) : (
             <>
-              <CheckCircleIcon className="h-5 w-5" />
+              <CheckCircleIcon className="h-4 w-4 sm:h-5 sm:w-5" />
               <span>Save Settings</span>
             </>
           )}
@@ -529,15 +529,15 @@ export function BookingSettings() {
       {/* Save Status */}
       {saveStatus !== 'idle' && (
         <div className={cn(
-          "flex items-center space-x-2 p-4 rounded-xl",
+          "flex items-center gap-2 p-3 sm:p-4 rounded-xl text-sm sm:text-base",
           saveStatus === 'success' 
             ? "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400"
             : "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"
         )}>
           {saveStatus === 'success' ? (
-            <CheckCircleIcon className="h-5 w-5" />
+            <CheckCircleIcon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
           ) : (
-            <ExclamationTriangleIcon className="h-5 w-5" />
+            <ExclamationTriangleIcon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
           )}
           <span>
             {saveStatus === 'success' 
@@ -558,14 +558,14 @@ export function BookingSettings() {
         <CardContent className="space-y-6">
           <div className="space-y-4">
             {!userProfile?.username && (
-              <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                <div className="flex items-center space-x-2">
-                  <ExclamationTriangleIcon className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+              <div className="p-3 sm:p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2">
+                  <ExclamationTriangleIcon className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
                   <div>
-                    <h4 className="font-medium text-yellow-800 dark:text-yellow-200">
+                    <h4 className="font-medium text-yellow-800 dark:text-yellow-200 text-sm sm:text-base">
                       Username Required
                     </h4>
-                    <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                    <p className="text-xs sm:text-sm text-yellow-700 dark:text-yellow-300 mt-1">
                       You need to set a username to enable public booking. This will be your unique booking URL.
                     </p>
                   </div>
@@ -577,21 +577,21 @@ export function BookingSettings() {
               <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
                 Your Username
               </label>
-              <div className="flex items-center space-x-3">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                 <div className="flex items-center flex-1 border border-slate-300 dark:border-slate-600 rounded-lg focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
-                  <span className="px-3 py-2 text-sm text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-700 border-r border-slate-300 dark:border-slate-600 rounded-l-lg">
+                  <span className="px-2 sm:px-3 py-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-700 border-r border-slate-300 dark:border-slate-600 rounded-l-lg break-all">
                     {typeof window !== 'undefined' ? window.location.origin : 'https://yoursite.com'}/schedule/
                   </span>
                   <input
                     type="text"
                     value={userProfile?.username || ''}
                     disabled
-                    className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-r-lg focus:outline-none"
+                    className="flex-1 px-2 sm:px-3 py-2 bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-r-lg focus:outline-none text-sm min-w-0"
                     placeholder="your-username"
                   />
                 </div>
                 {userProfile?.username && (
-                  <div className="flex items-center text-green-600 dark:text-green-400">
+                  <div className="flex items-center justify-center sm:justify-start text-green-600 dark:text-green-400">
                     <CheckCircleIcon className="h-5 w-5" />
                   </div>
                 )}
@@ -632,29 +632,29 @@ export function BookingSettings() {
           </div>
 
           {settings.publicBookingEnabled && userProfile?.username && (
-            <div className="space-y-4 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-medium text-slate-900 dark:text-white">Your Booking Link</h4>
-                  <code className="text-sm text-blue-600 dark:text-blue-400">
+            <div className="space-y-4 p-3 sm:p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <h4 className="font-medium text-slate-900 dark:text-white text-sm sm:text-base">Your Booking Link</h4>
+                  <code className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 break-all">
                     {window.location.origin}/schedule/{userProfile.username}
                   </code>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <button
                     onClick={copyBookingLink}
-                    className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+                    className="flex items-center justify-center p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors touch-target min-h-[44px] min-w-[44px]"
                     title="Copy booking link"
                   >
                     {copied ? (
-                      <span className="text-green-500 text-sm">✓ Copied!</span>
+                      <span className="text-green-500 text-xs sm:text-sm">✓ Copied!</span>
                     ) : (
                       <ClipboardDocumentIcon className="h-5 w-5" />
                     )}
                   </button>
                   <button
                     onClick={previewBookingPage}
-                    className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+                    className="flex items-center justify-center p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors touch-target min-h-[44px] min-w-[44px]"
                     title="Preview booking page"
                   >
                     <EyeIcon className="h-5 w-5" />
@@ -664,7 +664,7 @@ export function BookingSettings() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6">
             <div>
               <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
                 Booking Page Title
@@ -673,7 +673,7 @@ export function BookingSettings() {
                 type="text"
                 value={settings.bookingPageTitle}
                 onChange={(e) => setSettings(prev => ({ ...prev, bookingPageTitle: e.target.value }))}
-                className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                className="w-full px-3 sm:px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-base mobile-safe-area"
                 placeholder="Book a meeting with..."
               />
             </div>
@@ -686,7 +686,7 @@ export function BookingSettings() {
                 value={settings.bookingPageDescription}
                 onChange={(e) => setSettings(prev => ({ ...prev, bookingPageDescription: e.target.value }))}
                 rows={3}
-                className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                className="w-full px-3 sm:px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-base mobile-safe-area resize-vertical"
                 placeholder="Select a time that works for you..."
               />
             </div>
@@ -703,7 +703,7 @@ export function BookingSettings() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <div>
               <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
                 Default Meeting Duration
@@ -711,7 +711,7 @@ export function BookingSettings() {
               <select
                 value={settings.defaultMeetingDuration}
                 onChange={(e) => setSettings(prev => ({ ...prev, defaultMeetingDuration: parseInt(e.target.value) }))}
-                className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                className="w-full px-3 sm:px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-base mobile-safe-area"
               >
                 {DURATION_OPTIONS.map(option => (
                   <option key={option.value} value={option.value}>
@@ -728,7 +728,7 @@ export function BookingSettings() {
               <select
                 value={settings.timezone}
                 onChange={(e) => setSettings(prev => ({ ...prev, timezone: e.target.value }))}
-                className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                className="w-full px-3 sm:px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-base mobile-safe-area"
               >
                 {TIMEZONES.map(tz => (
                   <option key={tz.value} value={tz.value}>
@@ -745,7 +745,7 @@ export function BookingSettings() {
               <select
                 value={settings.bufferTimeBefore}
                 onChange={(e) => setSettings(prev => ({ ...prev, bufferTimeBefore: parseInt(e.target.value) }))}
-                className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                className="w-full px-3 sm:px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-base mobile-safe-area"
               >
                 {BUFFER_OPTIONS.map(option => (
                   <option key={option.value} value={option.value}>
@@ -762,7 +762,7 @@ export function BookingSettings() {
               <select
                 value={settings.bufferTimeAfter}
                 onChange={(e) => setSettings(prev => ({ ...prev, bufferTimeAfter: parseInt(e.target.value) }))}
-                className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                className="w-full px-3 sm:px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-base mobile-safe-area"
               >
                 {BUFFER_OPTIONS.map(option => (
                   <option key={option.value} value={option.value}>
@@ -784,65 +784,73 @@ export function BookingSettings() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-medium text-slate-900 dark:text-white">
+          <div className="space-y-4 sm:space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base sm:text-lg font-medium text-slate-900 dark:text-white">
                   Auto-confirm Bookings
                 </h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400">
                   Automatically confirm new bookings without manual approval
                 </p>
               </div>
-              <Switch
-                checked={settings.autoConfirmBookings}
-                onChange={(checked) => setSettings(prev => ({ ...prev, autoConfirmBookings: checked }))}
-              />
+              <div className="flex-shrink-0">
+                <Switch
+                  checked={settings.autoConfirmBookings}
+                  onChange={(checked) => setSettings(prev => ({ ...prev, autoConfirmBookings: checked }))}
+                />
+              </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-medium text-slate-900 dark:text-white">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base sm:text-lg font-medium text-slate-900 dark:text-white">
                   Require Guest Information
                 </h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400">
                   Require guests to provide their name and email
                 </p>
               </div>
-              <Switch
-                checked={settings.requireGuestInfo}
-                onChange={(checked) => setSettings(prev => ({ ...prev, requireGuestInfo: checked }))}
-              />
+              <div className="flex-shrink-0">
+                <Switch
+                  checked={settings.requireGuestInfo}
+                  onChange={(checked) => setSettings(prev => ({ ...prev, requireGuestInfo: checked }))}
+                />
+              </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-medium text-slate-900 dark:text-white">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base sm:text-lg font-medium text-slate-900 dark:text-white">
                   Allow Cancellations
                 </h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400">
                   Allow guests to cancel their bookings
                 </p>
               </div>
-              <Switch
-                checked={settings.allowCancellation}
-                onChange={(checked) => setSettings(prev => ({ ...prev, allowCancellation: checked }))}
-              />
+              <div className="flex-shrink-0">
+                <Switch
+                  checked={settings.allowCancellation}
+                  onChange={(checked) => setSettings(prev => ({ ...prev, allowCancellation: checked }))}
+                />
+              </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-medium text-slate-900 dark:text-white">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base sm:text-lg font-medium text-slate-900 dark:text-white">
                   Collect Phone Numbers
                 </h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400">
                   Require guests to provide their phone number
                 </p>
               </div>
-              <Switch
-                checked={settings.collectPhoneNumber}
-                onChange={(checked) => setSettings(prev => ({ ...prev, collectPhoneNumber: checked }))}
-              />
+              <div className="flex-shrink-0">
+                <Switch
+                  checked={settings.collectPhoneNumber}
+                  onChange={(checked) => setSettings(prev => ({ ...prev, collectPhoneNumber: checked }))}
+                />
+              </div>
             </div>
           </div>
         </CardContent>
@@ -857,23 +865,25 @@ export function BookingSettings() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-medium text-slate-900 dark:text-white">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+            <div className="min-w-0 flex-1">
+              <h3 className="text-base sm:text-lg font-medium text-slate-900 dark:text-white">
                 Enable Reminders
               </h3>
               <p className="text-sm text-slate-600 dark:text-slate-400">
                 Send reminder emails before meetings
               </p>
             </div>
-            <Switch
-              checked={settings.enableReminders}
-              onChange={(checked) => setSettings(prev => ({ ...prev, enableReminders: checked }))}
-            />
+            <div className="flex-shrink-0">
+              <Switch
+                checked={settings.enableReminders}
+                onChange={(checked) => setSettings(prev => ({ ...prev, enableReminders: checked }))}
+              />
+            </div>
           </div>
 
           {settings.enableReminders && (
-            <>
+            <div className="space-y-4 sm:space-y-6">
               <div>
                 <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
                   Send Reminder
@@ -881,7 +891,7 @@ export function BookingSettings() {
                 <select
                   value={settings.reminderTime}
                   onChange={(e) => setSettings(prev => ({ ...prev, reminderTime: parseInt(e.target.value) }))}
-                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  className="w-full px-3 sm:px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-base mobile-safe-area"
                 >
                   <option value={1}>1 hour before</option>
                   <option value={24}>24 hours before</option>
@@ -898,14 +908,14 @@ export function BookingSettings() {
                   value={settings.customReminderMessage}
                   onChange={(e) => setSettings(prev => ({ ...prev, customReminderMessage: e.target.value }))}
                   rows={3}
-                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  className="w-full px-3 sm:px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-base mobile-safe-area resize-vertical"
                   placeholder="Looking forward to our meeting..."
                 />
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   Optional custom message to include in reminder emails
                 </p>
               </div>
-            </>
+            </div>
           )}
 
           <div>
@@ -916,7 +926,7 @@ export function BookingSettings() {
               value={settings.customMessage}
               onChange={(e) => setSettings(prev => ({ ...prev, customMessage: e.target.value }))}
               rows={3}
-              className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+              className="w-full px-3 sm:px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-base mobile-safe-area resize-vertical"
               placeholder="Looking forward to our meeting..."
             />
           </div>
@@ -932,30 +942,32 @@ export function BookingSettings() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-medium text-slate-900 dark:text-white">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+            <div className="min-w-0 flex-1">
+              <h3 className="text-base sm:text-lg font-medium text-slate-900 dark:text-white">
                 Connect to Google Calendar
               </h3>
               <p className="text-sm text-slate-600 dark:text-slate-400">
                 Sync your bookings with Google Calendar
               </p>
             </div>
-            <Switch
-              checked={profile?.googleCalendarConnected || false}
-              onChange={handleGoogleCalendarToggle}
-            />
+            <div className="flex-shrink-0">
+              <Switch
+                checked={profile?.googleCalendarConnected || false}
+                onChange={handleGoogleCalendarToggle}
+              />
+            </div>
           </div>
 
           {profile?.googleCalendarConnected && (
-            <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <CheckCircleIcon className="h-5 w-5 text-green-500" />
+            <div className="p-3 sm:p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                <CheckCircleIcon className="h-5 w-5 text-green-500 flex-shrink-0" />
                 <div>
-                  <h4 className="font-medium text-green-800 dark:text-green-200">
+                  <h4 className="font-medium text-green-800 dark:text-green-200 text-sm sm:text-base">
                     Google Calendar Connected
                   </h4>
-                  <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                  <p className="text-xs sm:text-sm text-green-700 dark:text-green-300 mt-1">
                     Your Google Calendar is connected. Bookings will be synced automatically.
                   </p>
                 </div>
@@ -963,7 +975,7 @@ export function BookingSettings() {
             </div>
           )}
 
-          <div className="space-y-4">
+          <div className="space-y-4 sm:space-y-6">
             <div>
               <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
                 Google Calendar Email
@@ -972,7 +984,7 @@ export function BookingSettings() {
                 type="email"
                 value={profile?.googleCalendar?.connectedAt ? 'Connected' : ''}
                 disabled
-                className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 sm:px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base mobile-safe-area"
                 placeholder="Calendar connected"
               />
             </div>
@@ -984,7 +996,7 @@ export function BookingSettings() {
               <select
                 value={15}
                 disabled
-                className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 sm:px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base mobile-safe-area"
               >
                 <option value={5}>Every 5 minutes</option>
                 <option value={15}>Every 15 minutes</option>
@@ -1060,9 +1072,9 @@ export function BookingSettings() {
               </div>
               <button
                 onClick={previewBookingPage}
-                className="flex items-center space-x-2 px-4 py-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg hover:shadow-md transition-all duration-200"
+                className="flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg hover:shadow-md transition-all duration-200 min-h-[44px] touch-target text-sm sm:text-base"
               >
-                <EyeIcon className="h-4 w-4" />
+                <EyeIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                 <span>Preview Page</span>
               </button>
             </div>

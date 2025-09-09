@@ -464,7 +464,7 @@ export function BookingForm({ user, profile, selectedSlot, onComplete, onCancel 
                   value={formData.notes}
                   onChange={(e) => handleInputChange('notes', e.target.value)}
                   rows={3}
-                  className="block w-full rounded-xl border-slate-300 dark:border-slate-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-slate-700 dark:text-white text-base sm:text-sm resize-none bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm"
+                  className="block w-full rounded-xl border-slate-300 dark:border-slate-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-slate-700 dark:text-white text-base sm:text-sm resize-none bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm min-h-[88px] tap-highlight-none"
                   placeholder="Any additional information, agenda items, or special requests... (optional)"
                   disabled={loading}
                 />

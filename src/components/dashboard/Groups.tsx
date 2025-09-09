@@ -332,13 +332,13 @@ export function Groups() {
         <div className="mb-8">
           <Card className="border-0 bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-xl">
             <CardHeader className="pb-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <div className="flex items-center space-x-4">
                   <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
                     <UserGroupIcon className="h-8 w-8" />
                   </div>
                   <div>
-                    <CardTitle className="text-2xl font-bold text-white">
+                    <CardTitle className="text-xl sm:text-2xl font-bold text-white">
                       Group Management
                     </CardTitle>
                     <p className="text-blue-100 text-sm">
@@ -346,31 +346,33 @@ export function Groups() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-3">
-                  <Button
-                    variant={viewMode === "list" ? "secondary" : "ghost"}
-                    size="sm"
-                    onClick={() => setViewMode("list")}
-                    className="text-white border-white/20 hover:bg-white/20"
-                  >
-                    <UserGroupIcon className="h-4 w-4 mr-2" />
-                    Groups
-                  </Button>
-                  <Button
-                    variant={
-                      viewMode === "availability" ? "secondary" : "ghost"
-                    }
-                    size="sm"
-                    onClick={() => setViewMode("availability")}
-                    className="text-white border-white/20 hover:bg-white/20"
-                    disabled={!selectedGroup}
-                  >
-                    <CalendarDaysIcon className="h-4 w-4 mr-2 " />
-                    Availability
-                  </Button>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+                  <div className="flex gap-2">
+                    <Button
+                      variant={viewMode === "list" ? "secondary" : "ghost"}
+                      size="sm"
+                      onClick={() => setViewMode("list")}
+                      className="flex-1 sm:flex-none text-white border-white/20 hover:bg-white/20"
+                    >
+                      <UserGroupIcon className="h-4 w-4 mr-2" />
+                      Groups
+                    </Button>
+                    <Button
+                      variant={
+                        viewMode === "availability" ? "secondary" : "ghost"
+                      }
+                      size="sm"
+                      onClick={() => setViewMode("availability")}
+                      className="flex-1 sm:flex-none text-white border-white/20 hover:bg-white/20"
+                      disabled={!selectedGroup}
+                    >
+                      <CalendarDaysIcon className="h-4 w-4 mr-2 " />
+                      Availability
+                    </Button>
+                  </div>
                   <Button
                     onClick={() => setOpen(true)}
-                    className="bg-blue-600 text-white hover:bg-blue-700"
+                    className="bg-blue-600 text-white hover:bg-blue-700 w-full sm:w-auto"
                   >
                     <PlusIcon className="h-4 w-4 mr-2 text-white" />
                     Create Group
@@ -383,9 +385,9 @@ export function Groups() {
 
         {/* Group Statistics */}
         {viewMode === "list" && groups.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             <Card className="border-0 bg-white dark:bg-slate-800 shadow-lg">
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <div className="flex items-center">
                   <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
                     <UserGroupIcon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
@@ -445,19 +447,19 @@ export function Groups() {
           {viewMode === "list" ? (
             <Card className="border-0 bg-white dark:bg-slate-800 shadow-lg">
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <CardTitle className="flex items-center space-x-2">
                     <UserGroupIcon className="h-5 w-5 text-blue-500" />
                     <span>Your Groups</span>
                   </CardTitle>
-                  <div className="flex items-center space-x-4">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
                     {/* Search Input */}
-                    <div className="relative">
+                    <div className="relative flex-1 sm:flex-none">
                       <Input
                         placeholder="Search groups..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-64 pl-10"
+                        className="w-full sm:w-64 pl-10"
                       />
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <svg
@@ -484,7 +486,7 @@ export function Groups() {
                           e.target.value as "all" | "created" | "member"
                         )
                       }
-                      className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+                      className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm w-full sm:w-auto"
                     >
                       <option value="all">All Groups</option>
                       <option value="created">Created by Me</option>
@@ -572,7 +574,7 @@ export function Groups() {
                                     </span>
                                   )}
                                 </div>
-                                <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-600">
+                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2 border-t border-slate-200 dark:border-slate-600">
                                   <Button
                                     variant="ghost"
                                     size="sm"
@@ -581,12 +583,12 @@ export function Groups() {
                                       setSelectedGroup(group);
                                       setViewMode("availability");
                                     }}
-                                    className="text-blue-600 hover:text-blue-700"
+                                    className="text-blue-600 hover:text-blue-700 flex-1 sm:flex-none"
                                   >
                                     <EyeIcon className="h-4 w-4 mr-1" />
                                     View
                                   </Button>
-                                  <div className="flex items-center space-x-1">
+                                  <div className="flex items-center gap-1">
                                     <Button
                                       variant="ghost"
                                       size="sm"
@@ -594,7 +596,7 @@ export function Groups() {
                                         e.stopPropagation();
                                         handleEditGroup(group);
                                       }}
-                                      className="text-slate-600 hover:text-slate-700"
+                                      className="text-slate-600 hover:text-slate-700 flex-1 sm:flex-none"
                                       disabled={
                                         group.createdBy !== userProfile?.id
                                       }
@@ -613,7 +615,7 @@ export function Groups() {
                                         e.stopPropagation();
                                         handleDeleteGroup(group);
                                       }}
-                                      className="text-red-600 hover:text-red-700"
+                                      className="text-red-600 hover:text-red-700 flex-1 sm:flex-none"
                                       disabled={
                                         group.createdBy !== userProfile?.id
                                       }
@@ -790,7 +792,7 @@ export function Groups() {
                   >
                     Add Members by Email
                   </label>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <Input
                       id="email"
                       type="email"
@@ -808,6 +810,7 @@ export function Groups() {
                       variant="secondary"
                       onClick={handleAddMember}
                       disabled={!emailInput}
+                      className="w-full sm:w-auto"
                     >
                       Add
                     </Button>
@@ -845,7 +848,7 @@ export function Groups() {
                 <Button
                   onClick={handleCreateGroup}
                   disabled={loading || !groupName || members.length === 0}
-                  className="w-full"
+                  className="w-full min-h-[44px] touch-target"
                 >
                   {loading ? "Creating..." : "Create Group"}
                 </Button>
@@ -895,7 +898,7 @@ export function Groups() {
                   >
                     Add Members by Email
                   </label>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <Input
                       id="edit-email"
                       type="email"
@@ -913,6 +916,7 @@ export function Groups() {
                       variant="secondary"
                       onClick={handleAddEditMember}
                       disabled={!editEmailInput}
+                      className="w-full sm:w-auto"
                     >
                       Add
                     </Button>
@@ -943,11 +947,11 @@ export function Groups() {
                   )}
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <Button
                     variant="ghost"
                     onClick={handleCancelEdit}
-                    className="flex-1"
+                    className="flex-1 min-h-[44px] touch-target"
                   >
                     Cancel
                   </Button>
@@ -958,7 +962,7 @@ export function Groups() {
                       !editGroupName.trim() ||
                       editMembers.length === 0
                     }
-                    className="flex-1 bg-green-600 hover:bg-green-700"
+                    className="flex-1 min-h-[44px] touch-target bg-green-600 hover:bg-green-700"
                   >
                     {editLoading ? "Updating..." : "Update Group"}
                   </Button>
@@ -1005,11 +1009,11 @@ export function Groups() {
                   </div>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <Button
                     variant="ghost"
                     onClick={handleCancelDelete}
-                    className="flex-1"
+                    className="flex-1 min-h-[44px] touch-target"
                     disabled={deleteLoading}
                   >
                     Cancel
@@ -1017,7 +1021,7 @@ export function Groups() {
                   <Button
                     onClick={() => handleConfirmDelete()}
                     disabled={deleteLoading}
-                    className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                    className="flex-1 min-h-[44px] touch-target bg-red-600 hover:bg-red-700 text-white"
                   >
                     {deleteLoading ? "Deleting..." : "Delete Group"}
                   </Button>

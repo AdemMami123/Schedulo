@@ -138,22 +138,22 @@ export function Dashboard() {
         
         <main className="flex-1 lg:ml-64">
           {/* Enhanced Top Header Bar - Mobile Responsive */}
-          <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-700/50 sticky top-0 z-20 shadow-lg">
-            <div className="flex items-center justify-between px-4 sm:px-6 py-4">
+          <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-700/50 sticky top-0 z-20 shadow-lg mobile-safe-area">
+            <div className="flex items-center justify-between px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
               {/* Mobile menu button */}
               <div className="lg:hidden">
                 <button
                   onClick={() => setMobileMenuOpen(true)}
-                  className="btn-modern inline-flex items-center justify-center p-2.5 rounded-2xl text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200 hover:scale-105"
+                  className="btn-modern inline-flex items-center justify-center touch-target p-2 sm:p-2.5 rounded-2xl text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200 hover:scale-105 tap-highlight-none"
                 >
                   <span className="sr-only">Open main menu</span>
-                  <Bars3Icon className="h-6 w-6" />
+                  <Bars3Icon className="h-5 w-5 sm:h-6 sm:w-6" />
                 </button>
               </div>
 
               {/* Mobile Page Title */}
-              <div className="lg:hidden flex-1 mx-4">
-                <h1 className="text-lg font-bold text-slate-900 dark:text-white truncate">
+              <div className="lg:hidden flex-1 mx-3 sm:mx-4">
+                <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white truncate">
                   {getViewTitle()}
                 </h1>
               </div>
@@ -174,10 +174,10 @@ export function Dashboard() {
               </div>
 
               {/* Right side actions */}
-              <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="flex items-center space-x-1 sm:space-x-2 lg:space-x-3">
                 {/* Mobile Search Button */}
-                <button className="lg:hidden p-2 rounded-2xl text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200">
-                  <MagnifyingGlassIcon className="h-5 w-5" />
+                <button className="lg:hidden touch-target p-2 rounded-2xl text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200 tap-highlight-none">
+                  <MagnifyingGlassIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
 
                 {/* Desktop Search */}
@@ -185,16 +185,16 @@ export function Dashboard() {
                   <input
                     type="text"
                     placeholder="Search bookings, settings..."
-                    className="input-modern w-72 pl-11 pr-4 py-3 bg-white/80 dark:bg-slate-700/80 backdrop-blur-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
+                    className="input-modern w-64 xl:w-72 pl-10 sm:pl-11 pr-4 py-2.5 sm:py-3 bg-white/80 dark:bg-slate-700/80 backdrop-blur-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-mobile-responsive"
                   />
-                  <MagnifyingGlassIcon className="h-5 w-5 text-slate-400 absolute left-3.5 top-3.5" />
+                  <MagnifyingGlassIcon className="h-4 w-4 sm:h-5 sm:w-5 text-slate-400 absolute left-3 sm:left-3.5 top-3 sm:top-3.5" />
                 </div>
 
                 {/* Enhanced Notifications */}
                 <NotificationBell />
                 
                 {/* Separator */}
-                <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
+                <div className="h-5 sm:h-6 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
                 
                 {/* User Profile Dropdown */}
                 <UserProfileDropdown />
@@ -203,33 +203,33 @@ export function Dashboard() {
           </div>
 
           {/* Enhanced Main Content - Mobile Responsive */}
-          <div className="p-4 sm:p-6 space-y-6 sm:space-y-8">
+          <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 lg:space-y-8 mobile-safe-area">
             {/* Enhanced Welcome Section - Only show on Overview page */}
             {currentView === 'overview' && (
               <div className="relative overflow-hidden animate-slide-up">
                 <Card className="glass-card bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 text-white border-none shadow-2xl relative overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/20 via-purple-600/20 to-blue-600/20 backdrop-blur-3xl"></div>
-                  <div className="absolute -top-20 -right-20 w-60 h-60 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
-                  <div className="absolute -bottom-20 -left-20 w-48 h-48 bg-white/10 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+                  <div className="absolute -top-20 -right-20 w-40 sm:w-60 h-40 sm:h-60 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
+                  <div className="absolute -bottom-20 -left-20 w-32 sm:w-48 h-32 sm:h-48 bg-white/10 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '2s' }}></div>
 
-                  <CardContent className="p-6 sm:p-8 lg:p-10 relative z-10">
-                    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between space-y-6 lg:space-y-0">
-                      <div className="space-y-4 sm:space-y-6 flex-1">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-                          <span className="text-sm font-semibold text-blue-100 bg-white/10 px-3 py-1 rounded-full">
+                  <CardContent className="p-4 sm:p-6 lg:p-8 xl:p-10 relative z-10">
+                    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between space-y-4 sm:space-y-6 lg:space-y-0">
+                      <div className="space-y-3 sm:space-y-4 lg:space-y-6 flex-1">
+                        <div className="flex items-center space-x-2 sm:space-x-3">
+                          <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-400 rounded-full animate-pulse"></div>
+                          <span className="text-xs sm:text-sm font-semibold text-blue-100 bg-white/10 px-2 sm:px-3 py-1 rounded-full">
                             You're online
                           </span>
                         </div>
 
                         <div>
-                          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 leading-tight">
+                          <h2 className="text-lg sm:text-2xl lg:text-3xl xl:text-4xl font-bold mb-2 sm:mb-3 leading-tight">
                             Hello, {userProfile?.displayName}! 👋
                           </h2>
-                          <p className="text-blue-100 text-base sm:text-lg lg:text-xl font-medium leading-relaxed">
+                          <p className="text-blue-100 text-sm sm:text-base lg:text-lg xl:text-xl font-medium leading-relaxed">
                             Welcome to your professional scheduling hub — define your availability, share your link, and let others book you effortlessly.
                             <br className="hidden sm:block" />
-                            <span className="block sm:inline">It's like Calendly, but smarter. 🧠</span>
+                            <span className="block sm:inline mt-1 sm:mt-0">It's like Calendly, but smarter. 🧠</span>
                           </p>
                         </div>
 

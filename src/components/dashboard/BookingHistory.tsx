@@ -1177,9 +1177,9 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
       {filteredBookings.some(b => b.status === BookingStatus.PENDING) && (
         <Card variant="elevated" className="bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500">
           <CardContent className="p-4">
-            <div className="flex items-start justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
               <div className="flex items-center space-x-3">
-                <ExclamationTriangleIcon className="h-6 w-6 text-amber-600" />
+                <ExclamationTriangleIcon className="h-6 w-6 text-amber-600 flex-shrink-0" />
                 <div>
                   <h3 className="text-lg font-semibold text-amber-800 dark:text-amber-300">
                     Pending Bookings
@@ -1192,7 +1192,7 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
                 </div>
               </div>
               <button 
-                className="px-4 py-2 bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700 rounded-lg text-sm font-medium text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors"
+                className="px-4 py-2 bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700 rounded-lg text-sm font-medium text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors min-h-[44px] touch-target w-full sm:w-auto"
                 onClick={() => setSelectedFilter('pending')}
               >
                 View Pending
@@ -1205,10 +1205,10 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
       {/* Main Booking List */}
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
                 Booking History
               </h1>
               <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 rounded-full">
@@ -1225,11 +1225,11 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
                 </span>
               )}
             </div>
-            <p className="text-slate-600 dark:text-slate-400 mt-1">
+            <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">
               View, approve, and manage your scheduling calendar. Only you can accept or decline booking requests.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center sm:justify-end">
             <div className="flex -space-x-2">
               {filterCounts.pending > 0 && (
                 <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center border-2 border-white dark:border-slate-800" title="Pending bookings">
@@ -1253,21 +1253,21 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
         {/* Search and Filters */}
         <Card>
           <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col gap-4">
               {/* Search */}
-              <div className="relative flex-1 group">
+              <div className="relative group">
                 <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
                 <input
                   type="text"
                   placeholder="Search by name, email or notes..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-800 dark:text-white transition-all"
+                  className="w-full pl-10 pr-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-800 dark:text-white transition-all text-base mobile-safe-area"
                 />
                 {searchTerm && (
                   <button 
                     onClick={() => setSearchTerm('')}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 touch-target"
                   >
                     <XCircleIcon className="h-4 w-4" />
                   </button>
@@ -1277,7 +1277,7 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
               {/* Filter Toggle */}
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+                className="flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm min-h-[44px] touch-target"
               >
                 <div className="relative">
                   <FunnelIcon className="h-4 w-4" />
@@ -1293,7 +1293,7 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
             {/* Filters */}
             {showFilters && (
               <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   {/* Status Filter */}
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -1302,7 +1302,7 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
                     <select
                       value={selectedFilter}
                       onChange={(e) => setSelectedFilter(e.target.value as FilterType)}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-white"
+                      className="w-full px-3 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-white text-base mobile-safe-area"
                     >
                       <option value="all">All Bookings ({filterCounts.all})</option>
                       <option value="upcoming">Upcoming ({filterCounts.upcoming})</option>
@@ -1322,7 +1322,7 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
                     <select
                       value={selectedBookingType}
                       onChange={(e) => setSelectedBookingType(e.target.value as BookingTypeFilter)}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-slate-800 dark:text-white"
+                      className="w-full px-3 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-slate-800 dark:text-white text-base mobile-safe-area"
                     >
                       <option value="all">All Types ({filterCounts.all})</option>
                       <option value="individual">Individual ({filterCounts.individual})</option>
@@ -1338,7 +1338,7 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
                     <select
                       value={selectedSort}
                       onChange={(e) => setSelectedSort(e.target.value as SortType)}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-white"
+                      className="w-full px-3 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-white text-base mobile-safe-area"
                     >
                       <option value="newest">Newest First</option>
                       <option value="oldest">Oldest First</option>
@@ -1403,67 +1403,72 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
                   animationFillMode: 'forwards'
                 }}
               >
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-3">
-                        <div className="flex-shrink-0">
-                          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                            <UserIcon className="h-5 w-5 text-white" />
-                          </div>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-                              {booking.guestName}
-                            </h3>
-                            {booking.isGroupBooking && (
-                              <span className="px-2 py-0.5 bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400 text-xs font-medium rounded-full">
-                                Group Meeting
-                              </span>
-                            )}
-                            {booking.isGuest && (
-                              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 text-xs font-medium rounded-full">
-                                Your booking
-                              </span>
-                            )}
-                            {booking.isHost && (
-                              <span className="px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 text-xs font-medium rounded-full">
-                                With you
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-400">
-                            <EnvelopeIcon className="h-4 w-4" />
-                            <span>{booking.guestEmail}</span>
-                          </div>
-                          {booking.isGroupBooking && booking.groupBookingTitle && (
-                            <div className="flex items-center space-x-2 text-sm text-purple-600 dark:text-purple-400 mt-1">
-                              <UserGroupIcon className="h-4 w-4" />
-                              <span>{booking.groupBookingTitle}</span>
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex flex-col space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-3 sm:space-y-0">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-3">
+                          <div className="flex-shrink-0">
+                            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                              <UserIcon className="h-5 w-5 text-white" />
                             </div>
-                          )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2 mb-1">
+                              <h3 className="text-lg font-semibold text-slate-900 dark:text-white truncate">
+                                {booking.guestName}
+                              </h3>
+                              {booking.isGroupBooking && (
+                                <span className="px-2 py-0.5 bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400 text-xs font-medium rounded-full">
+                                  Group Meeting
+                                </span>
+                              )}
+                              {booking.isGuest && (
+                                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 text-xs font-medium rounded-full">
+                                  Your booking
+                                </span>
+                              )}
+                              {booking.isHost && (
+                                <span className="px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 text-xs font-medium rounded-full">
+                                  With you
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-400">
+                              <EnvelopeIcon className="h-4 w-4 flex-shrink-0" />
+                              <span className="truncate">{booking.guestEmail}</span>
+                            </div>
+                            {booking.isGroupBooking && booking.groupBookingTitle && (
+                              <div className="flex items-center space-x-2 text-sm text-purple-600 dark:text-purple-400 mt-1">
+                                <UserGroupIcon className="h-4 w-4 flex-shrink-0" />
+                                <span className="truncate">{booking.groupBookingTitle}</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
+                      </div>
+                      <div className="flex-shrink-0">
                         <div className={`px-3 py-1 rounded-full text-xs font-medium border ${booking.statusColor}`}>
                           <booking.statusIcon className="h-3 w-3 inline mr-1" />
                           {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
                         </div>
                       </div>
+                    </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                        <div className="flex items-center space-x-2 text-slate-600 dark:text-slate-400">
-                          <CalendarDaysIcon className="h-4 w-4" />
-                          <span>{booking.formattedDate}</span>
-                        </div>
-                        <div className="flex items-center space-x-2 text-slate-600 dark:text-slate-400">
-                          <ClockIcon className="h-4 w-4" />
-                          <span>{booking.formattedTime} ({booking.durationString})</span>
-                        </div>
-                        <div className="flex items-center space-x-2 text-slate-600 dark:text-slate-400">
-                          <MapPinIcon className="h-4 w-4" />
-                          <span>{booking.timezone}</span>
-                        </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+                      <div className="flex items-center space-x-2 text-slate-600 dark:text-slate-400">
+                        <CalendarDaysIcon className="h-4 w-4 flex-shrink-0" />
+                        <span className="truncate">{booking.formattedDate}</span>
                       </div>
+                      <div className="flex items-center space-x-2 text-slate-600 dark:text-slate-400">
+                        <ClockIcon className="h-4 w-4 flex-shrink-0" />
+                        <span className="truncate">{booking.formattedTime} ({booking.durationString})</span>
+                      </div>
+                      <div className="flex items-center space-x-2 text-slate-600 dark:text-slate-400">
+                        <MapPinIcon className="h-4 w-4 flex-shrink-0" />
+                        <span className="truncate">{booking.timezone}</span>
+                      </div>
+                    </div>
 
                       {booking.guestNotes && (
                         <div className="mt-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
@@ -1489,94 +1494,100 @@ ${booking.guestNotes ? `Notes: ${booking.guestNotes}` : ''}
                         </div>
                       )}
                     </div>
-                  </div>
                   
-                  <div className="flex justify-end mt-4 gap-2">
-                    {/* Status-specific action buttons - Only available to calendar owner/host */}
-                    {booking.isHost && booking.status === BookingStatus.PENDING && (
-                      <>
-                        <button
-                          onClick={() => {
-                            console.log('Button visibility check:', {
-                              bookingId: booking.id,
-                              isHost: booking.isHost,
-                              status: booking.status,
-                              shouldShowButtons: booking.isHost && booking.status === BookingStatus.PENDING
-                            });
-                            handleUpdateBookingStatus(booking.id, BookingStatus.CONFIRMED);
-                          }}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-green-100 text-green-700 hover:bg-green-200 rounded-md transition-colors dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/40"
-                          title="Confirm this booking request"
-                        >
-                          <CheckCircleIcon className="h-4 w-4" />
-                          <span className="text-xs font-medium">Confirm</span>
-                        </button>
-                        <button
-                          onClick={() => {
-                            console.log('Button visibility check:', {
-                              bookingId: booking.id,
-                              isHost: booking.isHost,
-                              status: booking.status,
-                              shouldShowButtons: booking.isHost && booking.status === BookingStatus.PENDING
-                            });
-                            handleUpdateBookingStatus(booking.id, BookingStatus.CANCELLED);
-                          }}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded-md transition-colors dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40"
-                          title="Decline this booking request"
-                        >
-                          <XCircleIcon className="h-4 w-4" />
-                          <span className="text-xs font-medium">Cancel</span>
-                        </button>
-                      </>
-                    )}
-                    
-                    {booking.isHost && booking.status === BookingStatus.CONFIRMED && booking.isPast && (
-                      <button
-                        onClick={() => handleUpdateBookingStatus(booking.id, BookingStatus.COMPLETED)}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-md transition-colors dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40"
-                      >
-                        <CheckCircleIconSolid className="h-4 w-4" />
-                        <span className="text-xs font-medium">Mark Complete</span>
-                      </button>
-                    )}
-                    
-                    {/* Join Video Call button for confirmed bookings with Jitsi Meet URL or Group Meeting Link */}
-                    {booking.status === BookingStatus.CONFIRMED && (booking.jitsiMeetUrl || (booking.isGroupBooking && booking.meetingLink)) && (
-                      <button
-                        onClick={() => {
-                          const meetingUrl = booking.jitsiMeetUrl || booking.meetingLink;
-                          if (meetingUrl) {
-                            window.open(meetingUrl, '_blank', 'noopener,noreferrer');
-                          }
-                        }}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-md transition-colors dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40"
-                        title={booking.isGroupBooking ? "Join the group meeting" : "Join the video call for this meeting"}
-                      >
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                        <span className="text-xs font-medium">
-                          {booking.isGroupBooking ? 'Join Group Meeting' : 'Join Video Call'}
-                        </span>
-                      </button>
-                    )}
-                    
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleCopyBookingDetails(booking)}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-md transition-colors dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
-                      >
-                        <ClipboardDocumentIcon className="h-4 w-4" />
-                        <span className="text-xs font-medium">Copy</span>
-                      </button>
+                  {/* Action Buttons - Mobile Responsive */}
+                  <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                    <div className="flex flex-col sm:flex-row sm:justify-end gap-2">
+                      {/* Status-specific action buttons - Only available to calendar owner/host */}
+                      {booking.isHost && booking.status === BookingStatus.PENDING && (
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <button
+                            onClick={() => {
+                              console.log('Button visibility check:', {
+                                bookingId: booking.id,
+                                isHost: booking.isHost,
+                                status: booking.status,
+                                shouldShowButtons: booking.isHost && booking.status === BookingStatus.PENDING
+                              });
+                              handleUpdateBookingStatus(booking.id, BookingStatus.CONFIRMED);
+                            }}
+                            className="flex items-center justify-center gap-2 px-4 py-3 bg-green-100 text-green-700 hover:bg-green-200 rounded-lg transition-colors dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/40 min-h-[44px] touch-target text-sm font-medium"
+                            title="Confirm this booking request"
+                          >
+                            <CheckCircleIcon className="h-4 w-4" />
+                            <span>Confirm</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              console.log('Button visibility check:', {
+                                bookingId: booking.id,
+                                isHost: booking.isHost,
+                                status: booking.status,
+                                shouldShowButtons: booking.isHost && booking.status === BookingStatus.PENDING
+                              });
+                              handleUpdateBookingStatus(booking.id, BookingStatus.CANCELLED);
+                            }}
+                            className="flex items-center justify-center gap-2 px-4 py-3 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg transition-colors dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40 min-h-[44px] touch-target text-sm font-medium"
+                            title="Decline this booking request"
+                          >
+                            <XCircleIcon className="h-4 w-4" />
+                            <span>Cancel</span>
+                          </button>
+                        </div>
+                      )}
                       
-                      <button
-                        onClick={() => handleDeleteBooking(booking.id)}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-700 hover:bg-red-100 rounded-md transition-colors dark:bg-red-900/10 dark:text-red-400 dark:hover:bg-red-900/20"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                        <span className="text-xs font-medium">Delete</span>
-                      </button>
+                      {booking.isHost && booking.status === BookingStatus.CONFIRMED && booking.isPast && (
+                        <button
+                          onClick={() => handleUpdateBookingStatus(booking.id, BookingStatus.COMPLETED)}
+                          className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg transition-colors dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 min-h-[44px] touch-target text-sm font-medium"
+                        >
+                          <CheckCircleIconSolid className="h-4 w-4" />
+                          <span>Mark Complete</span>
+                        </button>
+                      )}
+                      
+                      {/* Join Video Call button for confirmed bookings with Jitsi Meet URL or Group Meeting Link */}
+                      {booking.status === BookingStatus.CONFIRMED && (booking.jitsiMeetUrl || (booking.isGroupBooking && booking.meetingLink)) && (
+                        <button
+                          onClick={() => {
+                            const meetingUrl = booking.jitsiMeetUrl || booking.meetingLink;
+                            if (meetingUrl) {
+                              window.open(meetingUrl, '_blank', 'noopener,noreferrer');
+                            }
+                          }}
+                          className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg transition-colors dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 min-h-[44px] touch-target text-sm font-medium"
+                          title={booking.isGroupBooking ? "Join the group meeting" : "Join the video call for this meeting"}
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                          <span className="hidden sm:inline">
+                            {booking.isGroupBooking ? 'Join Group Meeting' : 'Join Video Call'}
+                          </span>
+                          <span className="sm:hidden">
+                            {booking.isGroupBooking ? 'Join Meeting' : 'Join Call'}
+                          </span>
+                        </button>
+                      )}
+                      
+                      {/* Secondary Actions */}
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <button
+                          onClick={() => handleCopyBookingDetails(booking)}
+                          className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg transition-colors dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 min-h-[44px] touch-target text-sm font-medium"
+                        >
+                          <ClipboardDocumentIcon className="h-4 w-4" />
+                          <span>Copy Details</span>
+                        </button>
+                        
+                        <button
+                          onClick={() => handleDeleteBooking(booking.id)}
+                          className="flex items-center justify-center gap-2 px-4 py-3 bg-red-50 text-red-700 hover:bg-red-100 rounded-lg transition-colors dark:bg-red-900/10 dark:text-red-400 dark:hover:bg-red-900/20 min-h-[44px] touch-target text-sm font-medium"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                          <span>Delete</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
